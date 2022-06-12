@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" type="text/css" href="public/header.css">
+<body>
+    <div class="menu">
+        <h1>rust-website</h1>
+    </div>
+
+    <div>
+        {% block body %}
+        {% endblock body %}
+    </div>
+</body>
+</html>

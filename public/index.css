@@ -1,0 +1,19 @@
+.return-statement{
+    color: blue;
+}
+.process{
+    border: 2px;
+    border-color: black;
+    border-style: solid;
+}
+
+.processes{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.inner-div {
+    color:gray;
+}
