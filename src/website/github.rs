@@ -1,12 +1,11 @@
 //! Handle requests from github.
 
-use rocket::serde::{Deserialize, json::Json};
-use crate::communication::protocols::{Request, From, RequestType, none_request};
 use super::states::ProcessComm;
-use rocket::{State, post};
-use rocket::fairing::AdHoc;
+use crate::communication::protocols::{none_request, From, Request, RequestType};
 use crate::website::guards::githubip::GithubIP;
-
+use rocket::fairing::AdHoc;
+use rocket::serde::{json::Json, Deserialize};
+use rocket::{post, State};
 
 /// This struct is used to package the github JSON request into
 /// a usable struct. The struct only has one field, ref, since
@@ -15,34 +14,41 @@ use crate::website::guards::githubip::GithubIP;
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 struct GitHubJSON<'r> {
-    r#ref: &'r str //Will recieve in form "refs/head/<branch>"
+    r#ref: &'r str, //Will recieve in form "refs/head/<branch>"
 }
 
 /// This is a rocket post method that cathes requests made to
 /// /github/<id>. The id part is the process id that handles
-/// this github project. 
-/// 
+/// this github project.
+///
 /// When a github request is received, this functions sends
 /// a request to the handler to restart and pull the relevant
 /// process.
 #[allow(unused_variables)]
 #[post("/github/<id>", format = "json", data = "<data>")]
-async fn github<'a>(id: usize, data: Json<GitHubJSON<'_>>, state: &State<ProcessComm>, ip: GithubIP) -> &'a str {
+async fn github<'a>(
+    id: usize,
+    data: Json<GitHubJSON<'_>>,
+    state: &State<ProcessComm>,
+    ip: GithubIP,
+) -> &'a str {
     let split: Vec<&str> = data.r#ref.split("/").collect();
-    println!("{}",split[split.len()-1].to_string());
+    println!("{}", split[split.len() - 1].to_string());
     let empty = none_request();
-    let result = state.sender.clone().send(
-        Request{
-            from: From::Rocket, 
-            rtype: RequestType::Github, 
-            id: Some(id), 
-            push_branch: Some(split[split.len()-1].to_string()),
-            ..empty
-        });
+    let result = state.sender.clone().send(Request {
+        from: From::Rocket,
+        rtype: RequestType::Github,
+        id: Some(id),
+        push_branch: Some(split[split.len() - 1].to_string()),
+        ..empty
+    });
 
     match result {
-        Err(a) => println!("ERROR: Could not send RestartPull request to handler for id {}. Cause: {}", id,a),
-        _ => ()
+        Err(a) => println!(
+            "ERROR: Could not send RestartPull request to handler for id {}. Cause: {}",
+            id, a
+        ),
+        _ => (),
     }
     "Approved"
 }
@@ -54,4 +60,3 @@ pub fn stage() -> AdHoc {
         rocket.mount("/", routes![github])
     })
 }
-

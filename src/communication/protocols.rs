@@ -1,25 +1,25 @@
 //! Protocols used in the communcation
 
-use crate::process_handler::process::{ProcessStatus};
+use crate::process_handler::process::ProcessStatus;
 use std::collections::HashMap;
 
 /// Enum to specify the request from the frontend
 
 pub fn none_request() -> Request {
-    Request{
+    Request {
         from: From::Handler,
         rtype: RequestType::Start,
         id: None,
         processes: None,
         push_branch: None,
-        status: None
+        status: None,
     }
-} 
+}
 
 pub enum From {
     Rocket,
     Process,
-    Handler
+    Handler,
 }
 
 pub enum RequestType {
@@ -29,16 +29,16 @@ pub enum RequestType {
     Stop,
     RestartPull,
     GetProcesses,
-    Github
+    Github,
 }
 
-pub fn string_to_rtype(string: &str) -> RequestType{
+pub fn string_to_rtype(string: &str) -> RequestType {
     match string {
         "stop" => RequestType::Stop,
         "start" => RequestType::Start,
         "restart" => RequestType::Restart,
         "restartpull" => RequestType::RestartPull,
-        _ => RequestType::RestartPull
+        _ => RequestType::RestartPull,
     }
 }
 

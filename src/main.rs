@@ -1,31 +1,31 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-use std::result::Result;
-use std::*;
-use std::thread;
 use std::path::Path;
+use std::result::Result;
+use std::thread;
+use std::*;
 
-use rocket::{get, routes};
 use rocket::fs::{FileServer, NamedFile};
+use rocket::{get, routes};
 
-use rocket_dyn_templates::Template;
 use rocket_auth::{prelude::Error, *};
+use rocket_dyn_templates::Template;
 
-use crossbeam::channel::{unbounded};
-use sqlx::*;
+use crossbeam::channel::unbounded;
 use ctrlc;
+use sqlx::*;
 
-mod process_handler;
 mod communication;
+mod endpoints;
+mod process_handler;
 mod website;
 
-use website::states;
-use website::pages::home;
-use website::github;
-use website::auth;
 use process_handler::ProcessHandler;
-
-
+use website::auth;
+use website::github;
+use website::pages::home;
+use website::states;
 
 #[get("/favicon.ico")]
 async fn favicon() -> Option<NamedFile> {
@@ -35,33 +35,33 @@ async fn favicon() -> Option<NamedFile> {
 #[allow(unused_must_use)]
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-
     let conn = SqlitePool::connect("database.db").await?;
     let users: Users = conn.clone().into();
     users.create_table().await?;
 
     //The channel that Rocket will listen to
-    let (tx1,rx1) = unbounded();
+    let (tx1, rx1) = unbounded();
     ctrlc::set_handler(move || {
         println!("received Ctrl+C!");
-    }).expect("Error setting CTRLC");
+    })
+    .expect("Error setting CTRLC");
     //The channel that process_handler will listen too
-    let (tx2,rx2) = unbounded();
+    let (tx2, rx2) = unbounded();
     let mut proc_handler = ProcessHandler::new(rx2, tx1, tx2.clone());
     thread::spawn(move || proc_handler.start());
 
     rocket::build()
-    .attach(states::stage(tx2, rx1))
-    .attach(home::stage())
-    .attach(github::stage())
-    .attach(auth::stage())
-    .mount("/", routes![favicon])
-    .mount("/public", FileServer::from("public/"))
-    .attach(Template::fairing())
-    .manage(conn)
-    .manage(users)
-    .launch()
-    .await
-    .unwrap();
+        .attach(states::stage(tx2, rx1))
+        .attach(home::stage())
+        .attach(github::stage())
+        .attach(endpoints::stage())
+        .mount("/", routes![favicon])
+        .mount("/public", FileServer::from("public/"))
+        .attach(Template::fairing())
+        .manage(conn)
+        .manage(users)
+        .launch()
+        .await
+        .unwrap();
     Ok(())
 }

@@ -1,3 +1,7 @@
+* {
+    font-family: "Lucida Console", "Courier New", monospace;
+}
+
 .menu {
     text-decoration: none;
     display: flex;
