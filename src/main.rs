@@ -18,14 +18,11 @@ use sqlx::*;
 
 mod communication;
 mod endpoints;
+mod guards;
 mod process_handler;
-mod website;
+mod states;
 
 use process_handler::ProcessHandler;
-use website::auth;
-use website::github;
-use website::pages::home;
-use website::states;
 
 #[get("/favicon.ico")]
 async fn favicon() -> Option<NamedFile> {
@@ -52,12 +49,7 @@ async fn main() -> Result<(), Error> {
 
     rocket::build()
         .attach(states::stage(tx2, rx1))
-        .attach(home::stage())
-        .attach(github::stage())
         .attach(endpoints::stage())
-        .mount("/", routes![favicon])
-        .mount("/public", FileServer::from("public/"))
-        .attach(Template::fairing())
         .manage(conn)
         .manage(users)
         .launch()

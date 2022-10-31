@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use rocket::response::status::Conflict;
+use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::serde::Serialize;
 use rocket::State;
 
 use crate::communication::protocols::{none_request, From, Request, RequestType};
-use crate::website::states::ProcessComm;
+use crate::states::processcomm::ProcessComm;
 use rocket_auth::User;
 
 #[derive(Serialize)]
@@ -16,10 +16,7 @@ pub struct Task {
 }
 
 #[get("/get_processes")]
-pub async fn get_processes(
-    auth: User,
-    state: &State<ProcessComm>,
-) -> Result<Json<Task>, Conflict<String>> {
+pub async fn get_processes(auth: User, state: &State<ProcessComm>) -> Result<Json<Task>, Status> {
     let empty = none_request();
     let result = state.sender.send(Request {
         from: From::Rocket,
@@ -27,7 +24,7 @@ pub async fn get_processes(
         ..empty
     });
     match result {
-        Err(_) => return Err(Conflict(Some("There was an internal error.".to_string()))),
+        Err(_) => return Err(Status::InternalServerError),
         _ => {
             let processes_list = state.receiver.recv().unwrap().processes.unwrap();
             Ok(Json(Task {

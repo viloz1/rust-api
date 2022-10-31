@@ -1,9 +1,8 @@
 //! Handle requests from github.
 
-use super::states::ProcessComm;
 use crate::communication::protocols::{none_request, From, Request, RequestType};
-use crate::website::guards::githubip::GithubIP;
-use rocket::fairing::AdHoc;
+use crate::guards::githubip::GithubIP;
+use crate::states::processcomm::ProcessComm;
 use rocket::serde::{json::Json, Deserialize};
 use rocket::{post, State};
 
@@ -13,7 +12,7 @@ use rocket::{post, State};
 /// about since it contains the branch name.
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
-struct GitHubJSON<'r> {
+pub struct GitHubJSON<'r> {
     r#ref: &'r str, //Will recieve in form "refs/head/<branch>"
 }
 
@@ -26,7 +25,7 @@ struct GitHubJSON<'r> {
 /// process.
 #[allow(unused_variables)]
 #[post("/github/<id>", format = "json", data = "<data>")]
-async fn github<'a>(
+pub async fn github<'a>(
     id: usize,
     data: Json<GitHubJSON<'_>>,
     state: &State<ProcessComm>,
@@ -51,12 +50,4 @@ async fn github<'a>(
         _ => (),
     }
     "Approved"
-}
-
-/// Stage github. Used in attach in the main Rocket launch. This is
-/// to make sure that Rocket manages the github post requst.
-pub fn stage() -> AdHoc {
-    AdHoc::on_ignite("Github", |rocket| async {
-        rocket.mount("/", routes![github])
-    })
 }
