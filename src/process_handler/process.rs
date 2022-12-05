@@ -124,6 +124,7 @@ impl Process {
             Err(e) => println!("ERROR: Process with id {} could not tell process handler that it had started. Cause: {}",self.get_id(),e),
             _ => ()
         };
+
         child
     }
 
