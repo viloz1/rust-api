@@ -52,3 +52,17 @@ pub struct Request {
     pub push_branch: Option<String>,
     pub status: Option<ProcessStatus>,
 }
+
+pub enum RequestResultStatus {
+    Success,
+    Failed,
+    Update
+}
+
+pub struct RequestResult {
+    pub status: RequestResultStatus,
+    pub process_status: ProcessStatus,
+    pub message_id: usize,
+    pub id: usize,
+    pub body: String
+}

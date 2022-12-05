@@ -13,6 +13,8 @@ pub mod process;
 use process::{ProcessStatus, Process};
 use toml;
 use serde_derive::Deserialize;
+use crate::communication::protocols::RequestResult;
+use crate::communication::protocols::RequestResultStatus;
 use crate::communication::protocols::{Request, RequestType, From, none_request};
 use process::{status_to_string};
 
@@ -32,9 +34,11 @@ struct ConfigProcess {
 
 pub struct ProcessHandler {
     processes: HashMap<usize, Process>,
-    mailbox: Receiver<Request>,
+    mailbox_rocket: Receiver<Request>,
     rocket_mailman: Sender<Request>,
-    handler_mailman: Sender<Request>
+    handler_mailman: Sender<Request>,
+    mailbox_from_process: Receiver<RequestResult>,
+    mailbox_to_process: Sender<RequestResult>,
 }
 
 
@@ -44,8 +48,9 @@ impl ProcessHandler {
     /// tx_main is where we will send information to the main loop, and
     /// rx_main is where we will recieve information to the main loop.
     
-    pub fn new(mailbox: Receiver<Request>, rocket_mailman: Sender<Request>, handler_mailman: Sender<Request>) -> ProcessHandler {
-        ProcessHandler{processes: HashMap::new(), mailbox, rocket_mailman, handler_mailman}
+    pub fn new(mailbox_rocket: Receiver<Request>, rocket_mailman: Sender<Request>, handler_mailman: Sender<Request>) -> ProcessHandler {
+        let (mailbox_to_process,mailbox_from_process) = unbounded();
+        ProcessHandler{processes: HashMap::new(), mailbox_rocket, rocket_mailman, handler_mailman, mailbox_from_process, mailbox_to_process}
     }
 
     pub fn start(&mut self) {
@@ -63,15 +68,48 @@ impl ProcessHandler {
             let mut new_process = value.clone();
             println!("Started new handler");
 
-            let hmail = self.handler_mailman.clone();
+            let hmail = self.mailbox_to_process.clone();
 
             thread::spawn(move || new_process.start_loop(hmail, rx2));
         };
 
-        // The handler loop
+        thread::spawn(move || self.handle_api_requests());
+        thread::spawn(move || self.handle_process_requests());
+
+        loop {
+            
+        }
+
+        
+    }
+
+    fn handle_process_requests(&mut self) {
+        loop {
+            let mail = self.mailbox_from_process.recv();
+
+            match mail {
+                Ok(RequestResult {
+                    status: status,
+                    process_status: process_status,
+                    id: id,
+                    message_id: message_id,
+                    body: body
+                }) => {
+                    let process = self.processes.get_mut(&id).unwrap();
+                    //Make sure that process is not None!
+
+                    process.set_status(process_status);
+                },
+
+                _ => println!("Recieved unspecified message")
+            }
+        }
+    }
+
+    fn handle_api_requests(&mut self) {
         loop {
             // Pattern match messages from the frontend
-            let mail = self.mailbox.recv();
+            let mail = self.mailbox_rocket.recv();
             match mail {
 
                 Ok(Request {

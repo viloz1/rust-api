@@ -2,7 +2,7 @@
 //! to start a given process.
 
 use crossbeam::channel::{Sender, Receiver};
-use crate::communication::protocols::{Request, RequestType, From, none_request};
+use crate::communication::protocols::{Request, RequestType, From, none_request, RequestResult};
 use std::path::PathBuf;
 use run_script;
 use run_script::types::ScriptOptions;
@@ -74,7 +74,7 @@ impl Process {
     /// Start a procces. The programme will search for a build script
     /// and a start script in <process_directory>/api. Build and start
     /// scripts needs to be .sh files.
-    pub fn start(&mut self, tx: Sender<Request>) -> std::process::Child {
+    pub fn start(&mut self, tx: Sender<RequestResult>) -> std::process::Child {
         self.set_status(ProcessStatus::Starting);
 
         let empty = none_request();
@@ -136,7 +136,7 @@ impl Process {
     /// Stop a procces. The programme will search for a stop
     /// script in <process_directory>/api. Stop
     /// script need to be a .sh file.
-    pub fn stop(&mut self, tx: Sender<Request>) -> () {
+    pub fn stop(&mut self, tx: Sender<RequestResult>) -> () {
         self.set_status(ProcessStatus::Terminating);
 
         let empty = none_request();
@@ -182,7 +182,7 @@ impl Process {
     /// Pull a project from github. The programme will search for a pull
     /// script in <process_directory>/api. Pull
     /// script need to be a .sh file.
-    pub fn pull(&mut self, tx: Sender<Request>) -> () {
+    pub fn pull(&mut self, tx: Sender<RequestResult>) -> () {
         self.set_status(ProcessStatus::Pulling);
 
         let empty = none_request();
@@ -239,7 +239,7 @@ impl Process {
 
     /// Main loop for a process. Tries to pattern match requests from
     /// the handler on rx channel, and answers on tx channel.
-    pub fn start_loop(&mut self, tx: Sender<Request>, rx: Receiver<Request>) {
+    pub fn start_loop(&mut self, tx: Sender<RequestResult>, rx: Receiver<Request>) {
         let mut restartandpull: bool = false; 
         println!("Loop started for {}", self.get_name());
         //The program won't start if the child spawned isn't assigned (owned)
