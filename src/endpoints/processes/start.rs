@@ -21,7 +21,7 @@ pub fn start(
         id: Some(id),
         ..Default::default()
     });
-    println!("{:?}",result);
+    println!("{:?}", result);
     match result {
         Err(_) => Err(BadRequest(Some("a".to_string()))),
         _ => Ok(Accepted(Some("h".to_string()))),

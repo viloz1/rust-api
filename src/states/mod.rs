@@ -6,17 +6,15 @@ use rocket::{fairing::AdHoc, time::Time};
 /// Stage the states. Used in attach in the main Rocket launch. This is
 /// to make sure that Rocket manages the states.
 pub fn stage(tx: Sender<Request>, rx: Receiver<Request>, timeout: usize) -> AdHoc {
-    AdHoc::on_ignite("States", |rocket| async {
+    AdHoc::on_ignite("States", move |rocket| async move {
         let proc_com = processcomm::ProcessComm {
             sender: tx,
             receiver: rx,
         };
-        rocket.manage(proc_com);
-        rocket.manage(Timeout{timeout})
-
+        rocket.manage(proc_com).manage(Timeout { timeout })
     })
 }
 
 pub struct Timeout {
-    pub timeout: usize
+    pub timeout: usize,
 }

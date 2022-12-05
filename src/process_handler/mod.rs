@@ -10,12 +10,12 @@ use std::collections::HashMap;
 use std::fs;
 use std::thread;
 pub mod process;
+use crate::communication::protocols::RequestResult;
+use crate::communication::protocols::RequestResultStatus;
 use crate::communication::protocols::{From, Request, RequestType};
 use process::status_to_string;
 use process::{Process, ProcessStatus};
 use serde_derive::Deserialize;
-use crate::communication::protocols::RequestResult;
-use crate::communication::protocols::RequestResultStatus;
 use toml;
 
 #[derive(Deserialize)]
@@ -46,10 +46,21 @@ impl ProcessHandler {
     /// all the other processess.
     /// tx_main is where we will send information to the main loop, and
     /// rx_main is where we will recieve information to the main loop.
-    
-    pub fn new(mailbox_rocket: Receiver<Request>, rocket_mailman: Sender<Request>, handler_mailman: Sender<Request>) -> ProcessHandler {
-        let (mailbox_to_process,mailbox_from_process) = unbounded();
-        ProcessHandler{processes: HashMap::new(), mailbox_rocket, rocket_mailman, handler_mailman, mailbox_from_process, mailbox_to_process}
+
+    pub fn new(
+        mailbox_rocket: Receiver<Request>,
+        rocket_mailman: Sender<Request>,
+        handler_mailman: Sender<Request>,
+    ) -> ProcessHandler {
+        let (mailbox_to_process, mailbox_from_process) = unbounded();
+        ProcessHandler {
+            processes: HashMap::new(),
+            mailbox_rocket,
+            rocket_mailman,
+            handler_mailman,
+            mailbox_from_process,
+            mailbox_to_process,
+        }
     }
 
     pub fn start(&mut self) {
@@ -69,16 +80,19 @@ impl ProcessHandler {
             let hmail = self.mailbox_to_process.clone();
 
             thread::spawn(move || new_process.start_loop(hmail, rx2));
-        };
-
-        thread::spawn(move || self.handle_api_requests());
-        thread::spawn(move || self.handle_process_requests());
-
-        loop {
-            
         }
 
-        
+        crossbeam_utils::thread::scope(|s| {
+            s.spawn(|_| self.handle_api_requests());
+        })
+        .unwrap();
+
+        crossbeam_utils::thread::scope(|s| {
+            s.spawn(|_| self.handle_process_requests());
+        })
+        .unwrap();
+
+        loop {}
     }
 
     fn handle_process_requests(&mut self) {
@@ -87,19 +101,18 @@ impl ProcessHandler {
 
             match mail {
                 Ok(RequestResult {
-                    status: status,
-                    process_status: process_status,
-                    id: id,
-                    message_id: message_id,
-                    body: body
+                    status: RequestResultStatus::Update,
+                    body: body,
+                    id: Some(id),
+                    process_status: Some(process_status),
                 }) => {
                     let process = self.processes.get_mut(&id).unwrap();
                     //Make sure that process is not None!
 
                     process.set_status(process_status);
-                },
+                }
 
-                _ => println!("Recieved unspecified message")
+                _ => println!("Recieved unspecified message"),
             }
         }
     }
@@ -116,7 +129,9 @@ impl ProcessHandler {
                     processes: _,
                     push_branch: _,
                     status: _,
+                    answer_channel: Some(answer_channel),
                 }) => {
+                    let (tx, rx) = unbounded();
                     let result = self.rocket_mailman.clone().send(Request {
                         from: From::Handler,
                         rtype: RequestType::GetProcesses,
@@ -124,155 +139,31 @@ impl ProcessHandler {
                         processes: Some(self.proclist_as_string()),
                         push_branch: None,
                         status: None,
+                        answer_channel: Some(tx),
                     });
-
                     match result {
-                        Err(e) => println!(
-                            "ERROR: Could not send back processes to frontend. Cause: {}",
-                            e
-                        ),
+                        Err(e) => {
+                            println!(
+                                "ERROR: Could not send back processes to frontend. Cause: {}",
+                                e
+                            );
+                            send_reply(RequestResultStatus::Failed, answer_channel, None);
+                            continue;
+                        }
                         _ => (),
                     }
-                }
 
-                Ok(Request {
-                    from: From::Rocket,
-                    rtype: RequestType::Github,
-                    id: Some(id),
-                    processes: _,
-                    push_branch: branch,
-                    status: _,
-                }) => {
-                    let process = self.processes.get(&id).unwrap();
-                    if process.branch != branch.unwrap() {
-                        {}
-                    }
-                    //Make sure that process is not None!
-                    let result = process.sender.send(Request {
-                        from: From::Handler,
-                        rtype: RequestType::RestartPull,
-                        ..Default::default()
-                    });
-
-                    match result {
-                        Err(e) => println!(
-                            "ERROR: Could not tell process {} to restartpull. Cause: {}",
-                            id, e
-                        ),
-                        _ => (),
-                    }
-                }
-
-                Ok(Request {
-                    from: From::Rocket,
-                    rtype: RequestType::Start,
-                    id: Some(id),
-                    processes: _,
-                    push_branch: _,
-                    status: _,
-                }) => {
-                    let process = self.processes.get(&id).unwrap();
-                    //Make sure that process is not None!
-                    match process.get_status() {
-                        ProcessStatus::Off => {
-                            let result = process.sender.send(Request {
-                                from: From::Handler,
-                                rtype: RequestType::Start,
-                                ..Default::default()
-                            });
-                            match result {
-                                Err(e) => println!(
-                                    "ERROR: Could not tell process {} to start. Cause: {}",
-                                    id, e
-                                ),
-                                _ => (),
-                            }
+                    match rx.recv() {
+                        Err(e) => {
+                            println!(
+                                "ERROR: Could not send back processes to frontend. Cause: {}",
+                                e
+                            );
+                            send_reply(RequestResultStatus::Failed, answer_channel, None);
+                            continue;
                         }
-                        _ => println!("Error, process is busy"),
-                    }
-                }
-
-                Ok(Request {
-                    from: From::Rocket,
-                    rtype: RequestType::Stop,
-                    id: Some(id),
-                    processes: _,
-                    push_branch: _,
-                    status: _,
-                }) => {
-                    let process = self.processes.get(&id).unwrap();
-                    //Make sure that process is not None!
-                    match process.get_status() {
-                        ProcessStatus::On => {
-                            let result = process.sender.send(Request {
-                                from: From::Handler,
-                                rtype: RequestType::Stop,
-                                ..Default::default()
-                            });
-                            match result {
-                                Err(e) => println!(
-                                    "ERROR: Could not tell process {} to stop. Cause: {}",
-                                    id, e
-                                ),
-                                _ => (),
-                            }
-                        }
-                        _ => println!("Error, process is busy"),
-                    }
-                }
-
-                Ok(Request {
-                    from: From::Rocket,
-                    rtype: RequestType::Restart,
-                    id: Some(id),
-                    processes: _,
-                    push_branch: _,
-                    status: _,
-                }) => {
-                    let process = self.processes.get(&id).unwrap();
-                    //Make sure that process is not None!
-                    match process.get_status() {
-                        ProcessStatus::On => {
-                            let result = process.sender.send(Request {
-                                from: From::Handler,
-                                rtype: RequestType::Restart,
-                                ..Default::default()
-                            });
-                            match result {
-                                Err(e) => println!(
-                                    "ERROR: Could not tell process {} to restart. Cause: {}",
-                                    id, e
-                                ),
-                                _ => (),
-                            }
-                        }
-                        _ => println!("Error, process is busy"),
-                    }
-                }
-
-                Ok(Request {
-                    from: From::Rocket,
-                    rtype: RequestType::RestartPull,
-                    id: Some(id),
-                    processes: _,
-                    push_branch: _,
-                    status: _,
-                }) => {
-                    let process = self.processes.get(&id).unwrap();
-                    //Make sure that process is not None!
-                    let result = process.sender.send(Request {
-                        from: From::Handler,
-                        rtype: RequestType::RestartPull,
-                        ..Default::default()
-                    });
-
-                    match result {
-                        Err(e) => println!(
-                            "ERROR: Could not tell process {} to restartpull. Cause: {}",
-                            id, e
-                        ),
-                        _ => (),
-                    }
+                        Ok(res) => answer_channel.send(res),
+                    };
                 }
 
                 Ok(Request {
@@ -282,12 +173,24 @@ impl ProcessHandler {
                     processes: _,
                     push_branch: _,
                     status: Some(status),
+                    answer_channel: Some(answer_channel),
                 }) => {
                     let process = self.processes.get_mut(&id).unwrap();
                     //Make sure that process is not None!
 
                     process.set_status(status);
+                    send_reply(RequestResultStatus::Success, answer_channel, None);
                 }
+
+                Ok(Request {
+                    from: From::Rocket,
+                    rtype: action,
+                    id: Some(id),
+                    processes: _,
+                    push_branch: _,
+                    status: _,
+                    answer_channel: Some(answer_channel),
+                }) => self.send_action(id, answer_channel, action),
 
                 _ => println!("Recieved unspecified message"),
             }
@@ -331,4 +234,50 @@ impl ProcessHandler {
         }
         rv
     }
+
+    fn send_action(
+        &mut self,
+        id: usize,
+        answer_channel: Sender<RequestResult>,
+        action: RequestType,
+    ) {
+        let process = self.processes.get(&id).unwrap();
+        if process.is_busy() {
+            send_reply(
+                RequestResultStatus::Failed,
+                answer_channel,
+                Some("That process is busy with. Please try again later.".to_string()),
+            );
+            return;
+        }
+        //Make sure that process is not None!
+        let result = process.sender.send(Request {
+            from: From::Handler,
+            rtype: action.clone(),
+            answer_channel: None,
+            ..Default::default()
+        });
+
+        match result {
+            Err(e) => {
+                println!(
+                    "ERROR: Could not tell process {} to do action {}. Cause: {}",
+                    id, action, e
+                );
+                send_reply(RequestResultStatus::Failed, answer_channel, None);
+                return;
+            }
+            _ => (),
+        }
+        send_reply(RequestResultStatus::Success, answer_channel, None);
+    }
+}
+
+fn send_reply(status: RequestResultStatus, sender: Sender<RequestResult>, body: Option<String>) {
+    let reply = RequestResult {
+        status: status,
+        body: body,
+        ..Default::default()
+    };
+    sender.send(reply);
 }

@@ -1,8 +1,9 @@
 //! Protocols used in the communcation
 
 use crate::process_handler::process::ProcessStatus;
-use std::collections::HashMap;
 use crossbeam::channel::Sender;
+use std::collections::HashMap;
+use std::fmt;
 
 /// Enum to specify the request from the frontend
 
@@ -12,6 +13,7 @@ pub enum From {
     Handler,
 }
 
+#[derive(Clone, Debug)]
 pub enum RequestType {
     Status,
     Start,
@@ -20,6 +22,20 @@ pub enum RequestType {
     RestartPull,
     GetProcesses,
     Github,
+}
+
+impl fmt::Display for RequestType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            RequestType::Status => write!(f, "Status"),
+            RequestType::Start => write!(f, "Start"),
+            RequestType::Restart => write!(f, "Restart"),
+            RequestType::Stop => write!(f, "Stop"),
+            RequestType::RestartPull => write!(f, "RestartPull"),
+            RequestType::GetProcesses => write!(f, "GetProcesses"),
+            RequestType::Github => write!(f, "Github"),
+        }
+    }
 }
 
 pub fn string_to_rtype(string: &str) -> RequestType {
@@ -41,7 +57,7 @@ pub struct Request {
     pub processes: Option<Vec<HashMap<String, String>>>,
     pub push_branch: Option<String>,
     pub status: Option<ProcessStatus>,
-    pub answer_channel: Option<Sender<RequestResult>>
+    pub answer_channel: Option<Sender<RequestResult>>,
 }
 
 impl Default for Request {
@@ -53,7 +69,7 @@ impl Default for Request {
             processes: None,
             push_branch: None,
             status: None,
-            answer_channel: None
+            answer_channel: None,
         }
     }
 }
@@ -61,13 +77,23 @@ impl Default for Request {
 pub enum RequestResultStatus {
     Success,
     Failed,
-    Update
+    Update,
 }
 
 pub struct RequestResult {
     pub status: RequestResultStatus,
-    pub process_status: ProcessStatus,
-    pub message_id: usize,
-    pub id: usize,
-    pub body: String
+    pub body: Option<String>,
+    pub process_status: Option<ProcessStatus>,
+    pub id: Option<usize>,
+}
+
+impl Default for RequestResult {
+    fn default() -> Self {
+        RequestResult {
+            status: RequestResultStatus::Update,
+            body: None,
+            process_status: None,
+            id: None,
+        }
+    }
 }

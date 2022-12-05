@@ -1,12 +1,14 @@
 //! Contains the process struct and functions
 //! to start a given process.
 
-use crossbeam::channel::{Sender, Receiver};
-use crate::communication::protocols::{Request, RequestType, From,RequestResult};
-use std::path::PathBuf;
+use crate::communication::protocols::{
+    From, Request, RequestResult, RequestResultStatus, RequestType,
+};
+use crossbeam::channel::{Receiver, Sender};
 use run_script;
 use run_script::types::ScriptOptions;
 use serde::Serialize;
+use std::path::PathBuf;
 
 /// Enum to differentiate the status of the procces
 #[derive(Clone, PartialEq, Debug, Serialize)]
@@ -68,20 +70,23 @@ impl Process {
         self.process_id.clone()
     }
 
+    pub fn is_busy(&self) -> bool {
+        return self.status == ProcessStatus::Terminating
+            || self.status == ProcessStatus::Starting
+            || self.status == ProcessStatus::Pulling;
+    }
+
     /// Start a procces. The programme will search for a build script
     /// and a start script in <process_directory>/api. Build and start
     /// scripts needs to be .sh files.
     pub fn start(&mut self, tx: Sender<RequestResult>) -> std::process::Child {
         self.set_status(ProcessStatus::Starting);
 
-        let empty = none_request();
-
-        let result = tx.send(Request {
-            from: From::Process,
-            rtype: RequestType::Status,
+        let result = tx.send(RequestResult {
+            status: RequestResultStatus::Update,
+            process_status: Some(ProcessStatus::Starting),
             id: Some(self.get_id()),
-            status: Some(ProcessStatus::Starting),
-            ..empty
+            ..Default::default()
         });
 
         match result {
@@ -111,13 +116,12 @@ impl Process {
         let child = run_script::spawn(run_path.as_str(), &args, &options).unwrap();
 
         self.set_status(ProcessStatus::On);
-        let empty = none_request();
-        let result = tx.send(Request {
-            from: From::Process,
-            rtype: RequestType::Status,
+
+        let result = tx.send(RequestResult {
+            status: RequestResultStatus::Success,
+            process_status: Some(ProcessStatus::On),
             id: Some(self.get_id()),
-            status: Some(ProcessStatus::On),
-            ..empty
+            ..Default::default()
         });
 
         match result {
@@ -134,13 +138,11 @@ impl Process {
     pub fn stop(&mut self, tx: Sender<RequestResult>) -> () {
         self.set_status(ProcessStatus::Terminating);
 
-        let empty = none_request();
-        let result = tx.send(Request {
-            from: From::Process,
-            rtype: RequestType::Status,
+        let result = tx.send(RequestResult {
+            status: RequestResultStatus::Update,
+            process_status: Some(ProcessStatus::Terminating),
             id: Some(self.get_id()),
-            status: Some(ProcessStatus::Terminating),
-            ..empty
+            ..Default::default()
         });
 
         match result {
@@ -154,13 +156,11 @@ impl Process {
 
         self.set_status(ProcessStatus::Off);
 
-        let empty = none_request();
-        let result = tx.send(Request {
-            from: From::Process,
-            rtype: RequestType::Status,
+        let result = tx.send(RequestResult {
+            status: RequestResultStatus::Success,
+            process_status: Some(ProcessStatus::Off),
             id: Some(self.get_id()),
-            status: Some(ProcessStatus::Off),
-            ..empty
+            ..Default::default()
         });
 
         match result {
@@ -175,11 +175,10 @@ impl Process {
     pub fn pull(&mut self, tx: Sender<RequestResult>) -> () {
         self.set_status(ProcessStatus::Pulling);
 
-        let result = tx.send(Request {
-            from: From::Process,
-            rtype: RequestType::Status,
+        let result = tx.send(RequestResult {
+            status: RequestResultStatus::Update,
+            process_status: Some(ProcessStatus::Off),
             id: Some(self.get_id()),
-            status: Some(ProcessStatus::Pulling),
             ..Default::default()
         });
 
@@ -206,13 +205,11 @@ impl Process {
         run_script::run(run_path.as_str(), &args, &options).unwrap();
 
         self.set_status(ProcessStatus::Off);
-        let empty = none_request();
-        let result = tx.send(Request {
-            from: From::Process,
-            rtype: RequestType::Status,
+        let result = tx.send(RequestResult {
+            status: RequestResultStatus::Success,
+            process_status: Some(ProcessStatus::Off),
             id: Some(self.get_id()),
-            status: Some(ProcessStatus::Off),
-            ..empty
+            ..Default::default()
         });
 
         match result {
@@ -224,7 +221,7 @@ impl Process {
     /// Main loop for a process. Tries to pattern match requests from
     /// the handler on rx channel, and answers on tx channel.
     pub fn start_loop(&mut self, tx: Sender<RequestResult>, rx: Receiver<Request>) {
-        let mut restartandpull: bool = false; 
+        let mut restartandpull: bool = false;
         println!("Loop started for {}", self.get_name());
         //The program won't start if the child spawned isn't assigned (owned)
         //Otherwise, the child is dropped and the process stops
@@ -239,6 +236,7 @@ impl Process {
                     processes: _,
                     push_branch: _,
                     status: _,
+                    answer_channel: _,
                 }) => {
                     child = self.start(tx.clone());
                 }
@@ -250,6 +248,7 @@ impl Process {
                     processes: _,
                     push_branch: _,
                     status: _,
+                    answer_channel: _,
                 }) => match self.get_status() {
                     ProcessStatus::Off => {
                         self.pull(tx.clone());
@@ -271,6 +270,7 @@ impl Process {
                     processes: _,
                     push_branch: _,
                     status: _,
+                    answer_channel: _,
                 }) => {
                     self.stop(tx.clone());
                 }
@@ -282,6 +282,7 @@ impl Process {
                     processes: _,
                     push_branch: _,
                     status: _,
+                    answer_channel: _,
                 }) => {
                     self.stop(tx.clone());
                     child = self.start(tx.clone());

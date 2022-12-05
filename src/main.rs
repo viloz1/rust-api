@@ -44,11 +44,14 @@ async fn main() -> Result<(), Error> {
     .expect("Error setting CTRLC");
     //The channel that process_handler will listen too
     let (tx2, rx2) = unbounded();
-    let mut proc_handler = ProcessHandler::new(rx2, tx1, tx2.clone());
-    thread::spawn(move || proc_handler.start());
+    let copy = tx2.clone();
+    thread::spawn(move || {
+        let mut proc_handler: ProcessHandler = ProcessHandler::new(rx2, tx1, tx2.clone());
+        proc_handler.start();
+    });
 
     rocket::build()
-        .attach(states::stage(tx2, rx1, 5))
+        .attach(states::stage(copy, rx1, 5))
         .attach(endpoints::stage())
         .manage(conn)
         .manage(users)
