@@ -2,6 +2,7 @@
 
 use crate::process_handler::process::ProcessStatus;
 use std::collections::HashMap;
+use crossbeam::channel::Sender;
 
 /// Enum to specify the request from the frontend
 
@@ -40,6 +41,7 @@ pub struct Request {
     pub processes: Option<Vec<HashMap<String, String>>>,
     pub push_branch: Option<String>,
     pub status: Option<ProcessStatus>,
+    pub answer_channel: Option<Sender<RequestResult>>
 }
 
 impl Default for Request {
@@ -50,7 +52,8 @@ impl Default for Request {
             id: None,
             processes: None,
             push_branch: None,
-            status: None
+            status: None,
+            answer_channel: None
         }
     }
 }
