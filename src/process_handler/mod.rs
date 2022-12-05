@@ -72,7 +72,7 @@ impl ProcessHandler {
 
             let hmail = self.handler_mailman.clone();
 
-            //thread::spawn(move || new_process.start_loop(hmail, rx2));
+            thread::spawn(move || new_process.start_loop(hmail, rx2));
         }
 
         // The handler loop
