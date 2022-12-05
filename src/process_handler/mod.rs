@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::thread;
 pub mod process;
-use crate::communication::protocols::{none_request, From, Request, RequestType};
+use crate::communication::protocols::{From, Request, RequestType};
 use process::status_to_string;
 use process::{Process, ProcessStatus};
 use serde_derive::Deserialize;
@@ -148,11 +148,10 @@ impl ProcessHandler {
                         {}
                     }
                     //Make sure that process is not None!
-                    let empty = none_request();
                     let result = process.sender.send(Request {
                         from: From::Handler,
                         rtype: RequestType::RestartPull,
-                        ..empty
+                        ..Default::default()
                     });
 
                     match result {
@@ -174,13 +173,12 @@ impl ProcessHandler {
                 }) => {
                     let process = self.processes.get(&id).unwrap();
                     //Make sure that process is not None!
-                    let empty = none_request();
                     match process.get_status() {
                         ProcessStatus::Off => {
                             let result = process.sender.send(Request {
                                 from: From::Handler,
                                 rtype: RequestType::Start,
-                                ..empty
+                                ..Default::default()
                             });
                             match result {
                                 Err(e) => println!(
@@ -204,13 +202,12 @@ impl ProcessHandler {
                 }) => {
                     let process = self.processes.get(&id).unwrap();
                     //Make sure that process is not None!
-                    let empty = none_request();
                     match process.get_status() {
                         ProcessStatus::On => {
                             let result = process.sender.send(Request {
                                 from: From::Handler,
                                 rtype: RequestType::Stop,
-                                ..empty
+                                ..Default::default()
                             });
                             match result {
                                 Err(e) => println!(
@@ -234,13 +231,12 @@ impl ProcessHandler {
                 }) => {
                     let process = self.processes.get(&id).unwrap();
                     //Make sure that process is not None!
-                    let empty = none_request();
                     match process.get_status() {
                         ProcessStatus::On => {
                             let result = process.sender.send(Request {
                                 from: From::Handler,
                                 rtype: RequestType::Restart,
-                                ..empty
+                                ..Default::default()
                             });
                             match result {
                                 Err(e) => println!(
@@ -264,11 +260,10 @@ impl ProcessHandler {
                 }) => {
                     let process = self.processes.get(&id).unwrap();
                     //Make sure that process is not None!
-                    let empty = none_request();
                     let result = process.sender.send(Request {
                         from: From::Handler,
                         rtype: RequestType::RestartPull,
-                        ..empty
+                        ..Default::default()
                     });
 
                     match result {

@@ -1,6 +1,6 @@
 //! Handle requests from github.
 
-use crate::communication::protocols::{none_request, From, Request, RequestType};
+use crate::communication::protocols::{From, Request, RequestType};
 use crate::guards::githubip::GithubIP;
 use crate::states::processcomm::ProcessComm;
 use rocket::serde::{json::Json, Deserialize};
@@ -33,13 +33,12 @@ pub async fn github<'a>(
 ) -> &'a str {
     let split: Vec<&str> = data.r#ref.split("/").collect();
     println!("{}", split[split.len() - 1].to_string());
-    let empty = none_request();
     let result = state.sender.clone().send(Request {
         from: From::Rocket,
         rtype: RequestType::Github,
         id: Some(id),
         push_branch: Some(split[split.len() - 1].to_string()),
-        ..empty
+        ..Default::default()
     });
 
     match result {

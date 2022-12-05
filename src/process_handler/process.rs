@@ -2,11 +2,11 @@
 //! to start a given process.
 
 use crossbeam::channel::{Sender, Receiver};
-use crate::communication::protocols::{Request, RequestType, From, none_request, RequestResult};
+use crate::communication::protocols::{Request, RequestType, From,RequestResult};
 use std::path::PathBuf;
 use run_script;
 use run_script::types::ScriptOptions;
-use std::path::PathBuf;
+use serde::Serialize;
 
 /// Enum to differentiate the status of the procces
 #[derive(Clone, PartialEq, Debug, Serialize)]
@@ -175,13 +175,12 @@ impl Process {
     pub fn pull(&mut self, tx: Sender<RequestResult>) -> () {
         self.set_status(ProcessStatus::Pulling);
 
-        let empty = none_request();
         let result = tx.send(Request {
             from: From::Process,
             rtype: RequestType::Status,
             id: Some(self.get_id()),
             status: Some(ProcessStatus::Pulling),
-            ..empty
+            ..Default::default()
         });
 
         match result {

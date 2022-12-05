@@ -5,17 +5,6 @@ use std::collections::HashMap;
 
 /// Enum to specify the request from the frontend
 
-pub fn none_request() -> Request {
-    Request {
-        from: From::Handler,
-        rtype: RequestType::Start,
-        id: None,
-        processes: None,
-        push_branch: None,
-        status: None,
-    }
-}
-
 pub enum From {
     Rocket,
     Process,
@@ -51,6 +40,19 @@ pub struct Request {
     pub processes: Option<Vec<HashMap<String, String>>>,
     pub push_branch: Option<String>,
     pub status: Option<ProcessStatus>,
+}
+
+impl Default for Request {
+    fn default() -> Self {
+        Request {
+            from: From::Handler,
+            rtype: RequestType::Stop,
+            id: None,
+            processes: None,
+            push_branch: None,
+            status: None
+        }
+    }
 }
 
 pub enum RequestResultStatus {

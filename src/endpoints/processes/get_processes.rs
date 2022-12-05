@@ -5,7 +5,7 @@ use rocket::serde::json::Json;
 use rocket::serde::Serialize;
 use rocket::State;
 
-use crate::communication::protocols::{none_request, From, Request, RequestType};
+use crate::communication::protocols::{From, Request, RequestType};
 use crate::states::processcomm::ProcessComm;
 use rocket_auth::User;
 
@@ -17,11 +17,10 @@ pub struct Task {
 
 #[get("/get_processes")]
 pub async fn get_processes(auth: User, state: &State<ProcessComm>) -> Result<Json<Task>, Status> {
-    let empty = none_request();
     let result = state.sender.send(Request {
         from: From::Rocket,
         rtype: RequestType::GetProcesses,
-        ..empty
+        ..Default::default()
     });
     match result {
         Err(_) => return Err(Status::InternalServerError),

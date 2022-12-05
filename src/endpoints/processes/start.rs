@@ -2,7 +2,7 @@ use rocket::http::Status;
 use rocket::response::status::{Accepted, BadRequest};
 use rocket::State;
 
-use crate::communication::protocols::{none_request, From, Request, RequestType};
+use crate::communication::protocols::{From, Request, RequestType};
 use crate::guards::timer::TimerRequest;
 use crate::states::processcomm::ProcessComm;
 use rocket_auth::User;
@@ -15,12 +15,11 @@ pub fn start(
     time: TimerRequest,
 ) -> Result<Accepted<String>, BadRequest<String>> {
     println!("Starting");
-    let empty = none_request();
     let result = state.sender.send(Request {
         from: From::Rocket,
         rtype: RequestType::Start,
         id: Some(id),
-        ..empty
+        ..Default::default()
     });
     println!("{:?}",result);
     match result {
