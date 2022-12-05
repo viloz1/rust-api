@@ -48,7 +48,7 @@ async fn main() -> Result<(), Error> {
     thread::spawn(move || proc_handler.start());
 
     rocket::build()
-        .attach(states::stage(tx2, rx1))
+        .attach(states::stage(tx2, rx1, 5))
         .attach(endpoints::stage())
         .manage(conn)
         .manage(users)
