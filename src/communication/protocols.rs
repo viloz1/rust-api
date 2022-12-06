@@ -74,12 +74,14 @@ impl Default for Request {
     }
 }
 
+#[derive(Debug)]
+
 pub enum RequestResultStatus {
     Success,
     Failed,
     Update,
 }
-
+#[derive(Debug)]
 pub struct RequestResult {
     pub status: RequestResultStatus,
     pub body: Option<String>,

@@ -5,7 +5,8 @@
 //! it to the processes. This handler can communicate
 //! with the website by using message passing.
 
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::{unbounded, Receiver, RecvError, Select, Sender};
+use serde::__private::de;
 use std::collections::HashMap;
 use std::fs;
 use std::thread;
@@ -81,119 +82,87 @@ impl ProcessHandler {
 
             thread::spawn(move || new_process.start_loop(hmail, rx2));
         }
-
-        crossbeam_utils::thread::scope(|s| {
-            s.spawn(|_| self.handle_api_requests());
-        })
-        .unwrap();
-
-        crossbeam_utils::thread::scope(|s| {
-            s.spawn(|_| self.handle_process_requests());
-        })
-        .unwrap();
-
-        loop {}
-    }
-
-    fn handle_process_requests(&mut self) {
+        let mut sel = Select::new();
+        let a = self.mailbox_rocket.clone();
+        let b = self.mailbox_from_process.clone();
+        sel.recv(&b);
+        sel.recv(&a);
         loop {
-            let mail = self.mailbox_from_process.recv();
-
-            match mail {
-                Ok(RequestResult {
-                    status: RequestResultStatus::Update,
-                    body: body,
-                    id: Some(id),
-                    process_status: Some(process_status),
-                }) => {
-                    let process = self.processes.get_mut(&id).unwrap();
-                    //Make sure that process is not None!
-
-                    process.set_status(process_status);
-                }
-
-                _ => println!("Recieved unspecified message"),
+            let oper = sel.ready();
+            if (oper == 0) {
+                self.handle_process_requests(b.recv());
+            } else {
+                self.handle_api_requests(a.recv());
             }
         }
     }
 
-    fn handle_api_requests(&mut self) {
-        loop {
-            // Pattern match messages from the frontend
-            let mail = self.mailbox_rocket.recv();
-            match mail {
-                Ok(Request {
-                    from: From::Rocket,
-                    rtype: RequestType::GetProcesses,
-                    id: _,
-                    processes: _,
-                    push_branch: _,
-                    status: _,
-                    answer_channel: Some(answer_channel),
-                }) => {
-                    let (tx, rx) = unbounded();
-                    let result = self.rocket_mailman.clone().send(Request {
-                        from: From::Handler,
-                        rtype: RequestType::GetProcesses,
-                        id: None,
-                        processes: Some(self.proclist_as_string()),
-                        push_branch: None,
-                        status: None,
-                        answer_channel: Some(tx),
-                    });
-                    match result {
-                        Err(e) => {
-                            println!(
-                                "ERROR: Could not send back processes to frontend. Cause: {}",
-                                e
-                            );
-                            send_reply(RequestResultStatus::Failed, answer_channel, None);
-                            continue;
-                        }
-                        _ => (),
-                    }
+    fn handle_process_requests(&mut self, mail: Result<RequestResult, RecvError>) {
+        match mail {
+            Ok(RequestResult {
+                status: RequestResultStatus::Update,
+                body: body,
+                id: Some(id),
+                process_status: Some(process_status),
+            }) => {
+                let process = self.processes.get_mut(&id).unwrap();
+                println!("Recieved update: {:?}", process_status);
 
-                    match rx.recv() {
-                        Err(e) => {
-                            println!(
-                                "ERROR: Could not send back processes to frontend. Cause: {}",
-                                e
-                            );
-                            send_reply(RequestResultStatus::Failed, answer_channel, None);
-                            continue;
-                        }
-                        Ok(res) => answer_channel.send(res),
-                    };
-                }
-
-                Ok(Request {
-                    from: From::Process,
-                    rtype: RequestType::Status,
-                    id: Some(id),
-                    processes: _,
-                    push_branch: _,
-                    status: Some(status),
-                    answer_channel: Some(answer_channel),
-                }) => {
-                    let process = self.processes.get_mut(&id).unwrap();
-                    //Make sure that process is not None!
-
-                    process.set_status(status);
-                    send_reply(RequestResultStatus::Success, answer_channel, None);
-                }
-
-                Ok(Request {
-                    from: From::Rocket,
-                    rtype: action,
-                    id: Some(id),
-                    processes: _,
-                    push_branch: _,
-                    status: _,
-                    answer_channel: Some(answer_channel),
-                }) => self.send_action(id, answer_channel, action),
-
-                _ => println!("Recieved unspecified message"),
+                process.set_status(process_status);
             }
+
+            a => println!("Recieved unspecified message: {:?}", a),
+        }
+    }
+
+    fn handle_api_requests(&mut self, mail: Result<Request, RecvError>) {
+        // Pattern match messages from the frontend
+        match mail {
+            Ok(Request {
+                from: From::Rocket,
+                rtype: RequestType::GetProcesses,
+                id: _,
+                processes: _,
+                push_branch: _,
+                status: _,
+                answer_channel: Some(answer_channel),
+            }) => {
+                let body = proclist_as_string(self.processes.clone());
+                let answer = RequestResult {
+                    status: RequestResultStatus::Success,
+                    body: Some(body),
+                    ..Default::default()
+                };
+                answer_channel.send(answer);
+            }
+
+            Ok(Request {
+                from: From::Process,
+                rtype: RequestType::Status,
+                id: Some(id),
+                processes: _,
+                push_branch: _,
+                status: Some(status),
+                answer_channel: Some(answer_channel),
+            }) => {
+                let process = self.processes.get_mut(&id).unwrap();
+                //Make sure that process is not None!
+
+                process.set_status(status);
+                send_reply(RequestResultStatus::Success, answer_channel, None);
+            }
+
+            Ok(Request {
+                from: From::Rocket,
+                rtype: action,
+                id: Some(id),
+                processes: _,
+                push_branch: _,
+                status: _,
+                answer_channel: Some(answer_channel),
+            }) => self.send_action(id, answer_channel, action),
+
+            _ => println!("Recieved unspecified message"),
         }
     }
 
@@ -220,19 +189,6 @@ impl ProcessHandler {
         }
         println!("{:?}", map);
         return map;
-    }
-
-    fn proclist_as_string(&mut self) -> Vec<HashMap<String, String>> {
-        let mut rv: Vec<HashMap<String, String>> = vec![];
-
-        for (_, process) in &mut self.processes {
-            let mut new_hash: HashMap<String, String> = HashMap::new();
-            new_hash.insert("name".to_string(), process.get_name());
-            new_hash.insert("id".to_string(), process.get_id().to_string());
-            new_hash.insert("status".to_string(), status_to_string(process.get_status()));
-            rv.push(new_hash);
-        }
-        rv
     }
 
     fn send_action(
@@ -280,4 +236,19 @@ fn send_reply(status: RequestResultStatus, sender: Sender<RequestResult>, body: 
         ..Default::default()
     };
     sender.send(reply);
+}
+
+fn proclist_as_string(mut list: HashMap<usize, Process>) -> String {
+    let mut rv: String = String::new();
+
+    for (_, mut process) in list {
+        rv.push_str(process.get_name().as_str());
+        rv.push(',');
+        rv.push_str(process.get_id().to_string().as_str());
+        rv.push(',');
+        rv.push_str(status_to_string(process.get_status()).as_str());
+        rv.push(':');
+    }
+    rv.pop();
+    rv
 }

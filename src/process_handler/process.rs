@@ -88,6 +88,7 @@ impl Process {
             id: Some(self.get_id()),
             ..Default::default()
         });
+        println!("Sent start update");
 
         match result {
             Err(e) => println!("ERROR: Process with id {} could not tell process handler that it was starting. Cause: {}",self.get_id(),e),
