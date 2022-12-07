@@ -35,11 +35,9 @@ struct ConfigProcess {
 
 pub struct ProcessHandler {
     processes: HashMap<usize, Process>,
-    mailbox_rocket: Receiver<Request>,
-    rocket_mailman: Sender<Request>,
-    handler_mailman: Sender<Request>,
-    mailbox_from_process: Receiver<RequestResult>,
-    mailbox_to_process: Sender<RequestResult>,
+    rocket_handler_ch: Receiver<Request>,
+    process_handler_ch: Receiver<RequestResult>,
+    handler_process_ch: Sender<RequestResult>,
 }
 
 impl ProcessHandler {
@@ -48,19 +46,13 @@ impl ProcessHandler {
     /// tx_main is where we will send information to the main loop, and
     /// rx_main is where we will recieve information to the main loop.
 
-    pub fn new(
-        mailbox_rocket: Receiver<Request>,
-        rocket_mailman: Sender<Request>,
-        handler_mailman: Sender<Request>,
-    ) -> ProcessHandler {
-        let (mailbox_to_process, mailbox_from_process) = unbounded();
+    pub fn new(rocket_handler_ch: Receiver<Request>) -> ProcessHandler {
+        let (handler_process_ch, process_handler_ch) = unbounded();
         ProcessHandler {
             processes: HashMap::new(),
-            mailbox_rocket,
-            rocket_mailman,
-            handler_mailman,
-            mailbox_from_process,
-            mailbox_to_process,
+            rocket_handler_ch,
+            process_handler_ch,
+            handler_process_ch,
         }
     }
 
@@ -78,21 +70,21 @@ impl ProcessHandler {
             let mut new_process = value.clone();
             println!("Started new handler");
 
-            let hmail = self.mailbox_to_process.clone();
+            let hmail = self.handler_process_ch.clone();
 
             thread::spawn(move || new_process.start_loop(hmail, rx2));
         }
         let mut sel = Select::new();
-        let a = self.mailbox_rocket.clone();
-        let b = self.mailbox_from_process.clone();
-        sel.recv(&b);
-        sel.recv(&a);
+        let rocket_handler_ch_clone = self.rocket_handler_ch.clone();
+        let process_handler_ch_clone = self.process_handler_ch.clone();
+        sel.recv(&rocket_handler_ch_clone);
+        sel.recv(&process_handler_ch_clone);
         loop {
             let oper = sel.ready();
-            if (oper == 0) {
-                self.handle_process_requests(b.recv());
+            if oper == 0 {
+                self.handle_api_requests(rocket_handler_ch_clone.recv());
             } else {
-                self.handle_api_requests(a.recv());
+                self.handle_process_requests(process_handler_ch_clone.recv());
             }
         }
     }

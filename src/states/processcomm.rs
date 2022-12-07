@@ -9,5 +9,4 @@ use crossbeam::channel::{Receiver, Sender};
 /// messages.
 pub struct ProcessComm {
     pub sender: Sender<Request>,
-    pub receiver: Receiver<Request>,
 }

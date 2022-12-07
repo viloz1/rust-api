@@ -1,6 +1,11 @@
+use std::{thread, time};
+
 use auth::*;
+use crossbeam::channel::Receiver;
 use processes::*;
-use rocket::fairing::AdHoc;
+use rocket::{fairing::AdHoc, response::status::Custom, http::Status};
+
+use crate::{communication::protocols::{RequestResult, RequestResultStatus}, states::Timeout};
 
 mod auth;
 mod processes;
@@ -24,4 +29,29 @@ pub fn stage() -> AdHoc {
                 ],
             )
     })
+}
+
+pub fn wait_response(timeout: usize, rx: Receiver<RequestResult>) -> Custom<Option<String>> {
+    let mut t = 0;
+    while t < timeout * 2 {
+        let answer = rx.recv().unwrap();
+        match answer {
+            RequestResult {
+                status: RequestResultStatus::Success,
+                body: _,
+                process_status: _,
+                id: _,
+            } => return Custom(Status::Ok, None),
+            RequestResult {
+                status: RequestResultStatus::Failed,
+                body,
+                process_status: _,
+                id: _,
+            } => return Custom(Status::InternalServerError, body),
+            _ => (),
+        }
+        t += 1;
+        thread::sleep(time::Duration::from_millis(500))
+    }
+    return Custom(Status::InternalServerError, None);
 }

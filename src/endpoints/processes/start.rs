@@ -1,29 +1,39 @@
 use rocket::http::Status;
-use rocket::response::status::{Accepted, BadRequest};
+use rocket::response::status::Custom;
 use rocket::State;
 
-use crate::communication::protocols::{From, Request, RequestType};
+use crate::communication::protocols::{
+    From, Request, RequestResult, RequestType,
+};
+use crate::endpoints::wait_response;
 use crate::guards::timer::TimerRequest;
 use crate::states::processcomm::ProcessComm;
+use crate::states::Timeout;
+use crossbeam::channel::unbounded;
 use rocket_auth::User;
 
 #[post("/start/<id>")]
 pub fn start(
-    auth: User,
+    _auth: User,
     id: usize,
     state: &State<ProcessComm>,
-    time: TimerRequest,
-) -> Result<Accepted<String>, BadRequest<String>> {
-    println!("Starting");
+    timeout: &State<Timeout>,
+    _time: TimerRequest,
+) -> Custom<Option<String>> {
+    let (tx, rx) = unbounded::<RequestResult>();
+
     let result = state.sender.send(Request {
         from: From::Rocket,
         rtype: RequestType::Start,
         id: Some(id),
+        answer_channel: Some(tx),
         ..Default::default()
     });
-    println!("{:?}", result);
+
     match result {
-        Err(_) => Err(BadRequest(Some("a".to_string()))),
-        _ => Ok(Accepted(Some("h".to_string()))),
-    }
+        Err(_) => return Custom(Status::InternalServerError, None),
+        _ => (),
+    };
+
+    return wait_response(timeout.timeout, rx);
 }

@@ -119,7 +119,7 @@ impl Process {
         self.set_status(ProcessStatus::On);
 
         let result = tx.send(RequestResult {
-            status: RequestResultStatus::Success,
+            status: RequestResultStatus::Update,
             process_status: Some(ProcessStatus::On),
             id: Some(self.get_id()),
             ..Default::default()
@@ -158,7 +158,7 @@ impl Process {
         self.set_status(ProcessStatus::Off);
 
         let result = tx.send(RequestResult {
-            status: RequestResultStatus::Success,
+            status: RequestResultStatus:: Update,
             process_status: Some(ProcessStatus::Off),
             id: Some(self.get_id()),
             ..Default::default()
@@ -207,7 +207,7 @@ impl Process {
 
         self.set_status(ProcessStatus::Off);
         let result = tx.send(RequestResult {
-            status: RequestResultStatus::Success,
+            status: RequestResultStatus::Update,
             process_status: Some(ProcessStatus::Off),
             id: Some(self.get_id()),
             ..Default::default()
