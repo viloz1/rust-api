@@ -7,6 +7,7 @@ use rocket::response::status::Custom;
 use rocket::serde::json::Json;
 use rocket::serde::{Deserialize};
 use rocket::State;
+use futures::executor;
 
 use crate::communication::protocols::{
     From, Request, RequestResult, RequestResultStatus, RequestType,
@@ -30,7 +31,7 @@ pub struct ProcessCreateRequest<'r> {
 }
 
 #[post("/create", data="<content>")]
-pub async fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<&'a str> {
+pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<&'a str> {
     let process_model = ProcessSQLModel {
         name: content.name.to_string(),
         path: content.path.to_string(),
@@ -41,7 +42,7 @@ pub async fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, sta
         git_url: content.git_url.to_string()
     };
 
-    let result = database::processes::add_process_to_db(&p_db.process, process_model).await;
+    let result = executor::block_on(database::processes::add_process_to_db(&p_db.process, process_model));
 
     match result {
         Err(_) => Custom(Status::InternalServerError, "Failed to create a process"),
