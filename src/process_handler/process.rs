@@ -41,6 +41,9 @@ pub struct Process {
     pub name: String,
     pub sender: Sender<Request>,
     pub branch: String,
+    pub start_path: String,
+    pub stop_path: String,
+    pub build_path: String
 }
 
 impl Process {

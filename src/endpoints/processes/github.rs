@@ -2,7 +2,7 @@
 
 use crate::communication::protocols::{From, Request, RequestType};
 use crate::guards::githubip::GithubIP;
-use crate::states::processcomm::ProcessComm;
+use crate::states::ProcessComm;
 use rocket::serde::{json::Json, Deserialize};
 use rocket::{post, State};
 

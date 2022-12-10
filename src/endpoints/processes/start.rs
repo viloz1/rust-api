@@ -7,7 +7,7 @@ use crate::communication::protocols::{
 };
 use crate::endpoints::wait_response;
 use crate::guards::timer::TimerRequest;
-use crate::states::processcomm::ProcessComm;
+use crate::states::ProcessComm;
 use crate::states::Timeout;
 use crossbeam::channel::unbounded;
 use rocket_auth::User;

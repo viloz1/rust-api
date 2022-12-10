@@ -25,7 +25,8 @@ pub fn stage() -> AdHoc {
                     stop::stop,
                     start::start,
                     restart::restart,
-                    restartpull::restartpull
+                    restartpull::restartpull,
+                    create::create
                 ],
             )
     })

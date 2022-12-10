@@ -11,7 +11,7 @@ use rocket::State;
 use crate::communication::protocols::{
     From, Request, RequestResult, RequestResultStatus, RequestType,
 };
-use crate::states::processcomm::ProcessComm;
+use crate::states::ProcessComm;
 use rocket_auth::User;
 
 #[derive(Serialize)]

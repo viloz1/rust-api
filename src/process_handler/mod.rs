@@ -72,7 +72,7 @@ impl ProcessHandler {
 
             let hmail = self.handler_process_ch.clone();
 
-            thread::spawn(move || new_process.start_loop(hmail, rx2));
+            //thread::spawn(move || new_process.start_loop(hmail, rx2));
         }
         let mut sel = Select::new();
         let rocket_handler_ch_clone = self.rocket_handler_ch.clone();
@@ -176,6 +176,9 @@ impl ProcessHandler {
                     name: process.name,
                     sender: tx1,
                     branch: process.branch,
+                    start_path: "".to_string(),
+                    stop_path: "".to_string(),
+                    build_path: "".to_string()
                 },
             );
         }

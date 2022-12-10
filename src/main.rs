@@ -7,6 +7,8 @@ use std::result::Result;
 use std::thread;
 use std::*;
 
+use database::processes::ProcessSQLModel;
+use process_handler::process::{Process, ProcessStatus};
 use rocket::fs::{FileServer, NamedFile};
 use rocket::{get, routes};
 
@@ -52,14 +54,23 @@ async fn main() -> Result<(), Error> {
 
     let process_db_pool = SqlitePool::connect("databases/processes.db").await?;
     database::processes::populate(&process_db_pool).await?;
-    let mut rows = sqlx::query("SELECT * from Processes")
-    .fetch(&process_db_pool);
-    while let Some(row) = rows.try_next().await? {
-        // map the row into a user-defined domain type
-        let email: u32 = row.try_get("Id")?;
-        println!("{}",email);
-    }
 
+    let process = ProcessSQLModel {
+        path: "Test".to_string(),
+        name: "Test".to_string(),
+        branch: "Test".to_string(),
+        git_url: "Test".to_string(),
+        stop_path: "Test".to_string(),
+        start_path: "Test".to_string(),
+        build_path: "Test".to_string(),
+    };
+
+    database::processes::add_process_to_db(&process_db_pool, process).await?;
+
+    let result = database::processes::get_all_proccesses(&process_db_pool).await?;
+    for r in result {
+        println!("{:?}", r);
+    }
 
     //The channel that Rocket will listen to
     ctrlc::set_handler(move || {
@@ -72,15 +83,15 @@ async fn main() -> Result<(), Error> {
         let mut proc_handler: ProcessHandler = ProcessHandler::new(rx);
         proc_handler.start();
     });
-    /*
+    
     rocket::build()
-        .attach(states::stage(tx, 5))
+        .attach(states::stage(tx, 5, process_db_pool))
         .attach(endpoints::stage())
         .manage(conn)
         .manage(users)
         .launch()
         .await
         .unwrap();
-    */
+    
     Ok(())
 }
