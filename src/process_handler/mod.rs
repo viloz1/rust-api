@@ -6,14 +6,18 @@
 //! with the website by using message passing.
 
 use crossbeam::channel::{unbounded, Receiver, RecvError, Select, Sender};
+use futures::executor;
 use serde::__private::de;
+use sqlx::SqlitePool;
 use std::collections::HashMap;
 use std::fs;
 use std::thread;
 pub mod process;
 use crate::communication::protocols::RequestResult;
+use crate::database;
 use crate::communication::protocols::RequestResultStatus;
 use crate::communication::protocols::{From, Request, RequestType};
+use crate::database::processes::ProcessSQLModel;
 use process::status_to_string;
 use process::{Process, ProcessStatus};
 use serde_derive::Deserialize;
@@ -56,24 +60,53 @@ impl ProcessHandler {
         }
     }
 
-    pub fn start(&mut self) {
+    pub fn start_process(&mut self, name: String, process_id: usize, git_url: String, branch: String, path: String, start_path: String, stop_path: String, build_path: String) {
+        let (tx2, rx2) = unbounded();
+
+        let process = Process {
+            name,
+            git_url,
+            process_id,
+            branch,
+            path,
+            start_path,
+            stop_path,
+            build_path,
+            status: ProcessStatus::Off,
+            sender: tx2
+        };
+
+        println!("Started new process");
+
+        let hmail = self.handler_process_ch.clone();
+        self.processes.insert(process.get_id(), process);
+        //thread::spawn(move || process.start_loop(hmail, rx2));
+    }
+
+    #[tokio::main]
+    pub async fn start(&mut self, pool: &SqlitePool) {
         // Get the stored processes, and spawn a new thread for every
         // one
-        let map = self.retrieve_processes();
-        self.processes = map;
-
-        for (_, value) in &mut self.processes {
-            //The channel the processes will listen to
-            let (tx2, rx2) = unbounded();
-
-            value.set_sender(tx2);
-            let mut new_process = value.clone();
-            println!("Started new handler");
-
-            let hmail = self.handler_process_ch.clone();
-
-            //thread::spawn(move || new_process.start_loop(hmail, rx2));
+        let db_processes_result = executor::block_on(database::processes::get_all_proccesses(pool));
+        let db_processes: Vec<(usize, ProcessSQLModel)>;
+        match db_processes_result {
+            Err(e) => panic!("{}", e),
+            Ok(r) => db_processes = r
         }
+
+        for (id, proc) in db_processes {
+            self.start_process(
+                proc.name,
+                id,
+                proc.git_url,
+                proc.branch,
+                proc.path,
+                proc.start_path,
+                proc.stop_path,
+                proc.build_path
+            )
+        }
+
         let mut sel = Select::new();
         let rocket_handler_ch_clone = self.rocket_handler_ch.clone();
         let process_handler_ch_clone = self.process_handler_ch.clone();

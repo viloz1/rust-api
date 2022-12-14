@@ -30,7 +30,7 @@ pub async fn get_processes(auth: User, state: &State<ProcessComm>) -> Custom<Opt
         ..Default::default()
     });
     match result {
-        Err(_) => return Custom(Status::InternalServerError, None),
+        Err(e) => {println!("{}",e); return Custom(Status::InternalServerError, None)},
         _ => (),
     };
     let answer = rx.recv();
@@ -50,7 +50,7 @@ pub async fn get_processes(auth: User, state: &State<ProcessComm>) -> Custom<Opt
                 ),
             )
         }
-        _ => return Custom(Status::InternalServerError, None),
+        _ => {println!("1"); return Custom(Status::InternalServerError, None)},
     };
 }
 

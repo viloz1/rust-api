@@ -55,18 +55,6 @@ async fn main() -> Result<(), Error> {
     let process_db_pool = SqlitePool::connect("databases/processes.db").await?;
     database::processes::populate(&process_db_pool).await?;
 
-    let process = ProcessSQLModel {
-        path: "Test".to_string(),
-        name: "Test".to_string(),
-        branch: "Test".to_string(),
-        git_url: "Test".to_string(),
-        stop_path: "Test".to_string(),
-        start_path: "Test".to_string(),
-        build_path: "Test".to_string(),
-    };
-
-    database::processes::add_process_to_db(&process_db_pool, process).await?;
-
     let result = database::processes::get_all_proccesses(&process_db_pool).await?;
     for r in result {
         println!("{:?}", r);
@@ -79,13 +67,14 @@ async fn main() -> Result<(), Error> {
     .expect("Error setting CTRLC");
     //The channel that process_handler will listen too
     let (tx, rx) = unbounded();
+    let pool = process_db_pool.clone();
     thread::spawn(move || {
         let mut proc_handler: ProcessHandler = ProcessHandler::new(rx);
-        proc_handler.start();
+        proc_handler.start(&process_db_pool);
     });
     
     rocket::build()
-        .attach(states::stage(tx, 5, process_db_pool))
+        .attach(states::stage(tx, 5, pool))
         .attach(endpoints::stage())
         .manage(conn)
         .manage(users)

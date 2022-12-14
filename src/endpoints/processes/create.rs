@@ -45,7 +45,7 @@ pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, state: &'
     let result = executor::block_on(database::processes::add_process_to_db(&p_db.process, process_model));
 
     match result {
-        Err(_) => Custom(Status::InternalServerError, "Failed to create a process"),
+        Err(e) => {println!("{:?}", e); Custom(Status::InternalServerError, "Failed to create a process")},
         _ => Custom(Status::Ok, "Successfully created a new process"),
     }
 

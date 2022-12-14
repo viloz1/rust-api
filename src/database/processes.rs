@@ -52,8 +52,34 @@ pub async fn add_process_to_db(pool: &SqlitePool, process: ProcessSQLModel) -> R
     return Ok(())
 }
 
+pub async fn update_process_in_db(pool: &SqlitePool, process: ProcessSQLModel, id: usize) -> Result<(),Error>  {
+  sqlx::query(r#"
+  update Processes set
+    Name = ?1,
+    Path = ?2,
+    StartPath = ?3,
+    StopPath = ?4,
+    BuildPath = ?5,
+    GitURL = ?6,
+    Branch = ?7
+  where Id = ?8"#
+)
+		.bind(process.name)
+    .bind(process.path)
+    .bind(process.start_path)
+    .bind(process.stop_path)
+    .bind(process.build_path)
+    .bind(process.git_url)
+    .bind(process.branch)
+    .bind(id as i64)
+		.execute(pool)
+		.await?;
+
+    return Ok(())
+}
+
 pub async fn get_all_proccesses(pool: &SqlitePool) -> Result<Vec<(usize, ProcessSQLModel)>,Error> {
-  let rows = sqlx::query("SELECT * FROM Processes").fetch_all(pool).await?;
+  let rows = sqlx::query("SELECT * FROM Processes order by Id").fetch_all(pool).await?;
   let result = rows
 		.iter()
 		.map(|r| 
