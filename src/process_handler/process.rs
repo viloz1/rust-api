@@ -8,13 +8,16 @@ use crossbeam::channel::{Receiver, Sender};
 use run_script;
 use run_script::types::ScriptOptions;
 use serde::Serialize;
+use std::error::Error;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 /// Enum to differentiate the status of the procces
 #[derive(Clone, PartialEq, Debug, Serialize)]
 pub enum ProcessStatus {
     On,
     Starting,
+    Building,
     Pulling,
     Terminating,
     Off,
@@ -28,6 +31,7 @@ pub fn status_to_string(status: ProcessStatus) -> String {
         ProcessStatus::Pulling => "Pulling".to_string(),
         ProcessStatus::Terminating => "Terminating".to_string(),
         ProcessStatus::Off => "Off".to_string(),
+        ProcessStatus::Building => "Building".to_string()
     }
 }
 
@@ -41,9 +45,9 @@ pub struct Process {
     pub name: String,
     pub sender: Sender<Request>,
     pub branch: String,
-    pub start_path: String,
-    pub stop_path: String,
-    pub build_path: String
+    pub start_cmd: String,
+    pub stop_cmd: String,
+    pub build_cmd: String
 }
 
 impl Process {
@@ -76,150 +80,104 @@ impl Process {
     pub fn is_busy(&self) -> bool {
         return self.status == ProcessStatus::Terminating
             || self.status == ProcessStatus::Starting
-            || self.status == ProcessStatus::Pulling;
+            || self.status == ProcessStatus::Pulling
+            || self.status == ProcessStatus::Building;
     }
 
     /// Start a procces. The programme will search for a build script
     /// and a start script in <process_directory>/api. Build and start
     /// scripts needs to be .sh files.
-    pub fn start(&mut self, tx: Sender<RequestResult>) -> std::process::Child {
+    pub fn start(&mut self, tx: Sender<RequestResult>) -> anyhow::Result<std::process::Child> {
+        self.set_status(ProcessStatus::Building);
+
+        tx.send(RequestResult {
+            status: RequestResultStatus::Update,
+            process_status: Some(ProcessStatus::Building),
+            id: Some(self.get_id()),
+            ..Default::default()
+        })?;
+
+        Command::new("make")
+                .arg(self.build_cmd.clone())
+                .current_dir(self.path.clone())
+                .output()?;
+
         self.set_status(ProcessStatus::Starting);
 
-        let result = tx.send(RequestResult {
+        tx.send(RequestResult {
             status: RequestResultStatus::Update,
             process_status: Some(ProcessStatus::Starting),
             id: Some(self.get_id()),
             ..Default::default()
-        });
-        println!("Sent start update");
+        })?;
 
-        match result {
-            Err(e) => println!("ERROR: Process with id {} could not tell process handler that it was starting. Cause: {}",self.get_id(),e),
-            _ => ()
-        }
+        let child = Command::new("make")
+                .arg(self.start_cmd.clone())
+                .current_dir(self.path.clone())
+                .stdout(Stdio::null())
+                .spawn()?;
 
-        let orig_options = ScriptOptions::new();
-
-        let mut path = PathBuf::new();
-        path.push(&self.path);
-
-        let options = ScriptOptions {
-            working_directory: Some(path),
-            ..orig_options
-        };
-
-        let args = vec![];
-
-        let mut run_path: String = self.path.to_string();
-        run_path.push_str(r"/api/build.sh");
-
-        run_script::run(run_path.as_str(), &args, &options).unwrap();
-
-        run_path = self.path.to_string();
-        run_path.push_str(r"/api/start.sh");
-        let child = run_script::spawn(run_path.as_str(), &args, &options).unwrap();
 
         self.set_status(ProcessStatus::On);
 
-        let result = tx.send(RequestResult {
+        tx.send(RequestResult {
             status: RequestResultStatus::Update,
             process_status: Some(ProcessStatus::On),
             id: Some(self.get_id()),
             ..Default::default()
-        });
+        })?;
 
-        match result {
-            Err(e) => println!("ERROR: Process with id {} could not tell process handler that it had started. Cause: {}",self.get_id(),e),
-            _ => ()
-        };
-
-        child
+        Ok(child)
     }
 
     /// Stop a procces. The programme will search for a stop
     /// script in <process_directory>/api. Stop
     /// script need to be a .sh file.
-    pub fn stop(&mut self, tx: Sender<RequestResult>) -> () {
+    pub fn stop(&mut self, tx: Sender<RequestResult>) -> anyhow::Result<()> {
         self.set_status(ProcessStatus::Terminating);
 
-        let result = tx.send(RequestResult {
+        tx.send(RequestResult {
             status: RequestResultStatus::Update,
             process_status: Some(ProcessStatus::Terminating),
             id: Some(self.get_id()),
             ..Default::default()
-        });
+        })?;
 
-        match result {
-            Err(e) => println!("ERROR: Process with id {} could not tell process handler that it was terminating. Cause: {}",self.get_id(),e),
-            _ => ()
-        }
-
-        let mut stop_path: String = self.path.to_string();
-        stop_path.push_str(r"/api/stop.sh");
-        run_script::run_script!(stop_path.as_str()).unwrap();
+        Command::new("make")
+                .arg(self.stop_cmd.clone())
+                .current_dir(self.path.clone())
+                .output()?;
 
         self.set_status(ProcessStatus::Off);
-
-        let result = tx.send(RequestResult {
-            status: RequestResultStatus:: Update,
+        
+        tx.send(RequestResult {
+            status: RequestResultStatus::Update,
             process_status: Some(ProcessStatus::Off),
             id: Some(self.get_id()),
             ..Default::default()
-        });
+        })?;
 
-        match result {
-            Err(e) => println!("ERROR: Process with id {} could not tell process handler that it had stopped. Cause: {}",self.get_id(),e),
-            _ => ()
-        }
+        Ok(())
     }
 
     /// Pull a project from github. The programme will search for a pull
     /// script in <process_directory>/api. Pull
     /// script need to be a .sh file.
-    pub fn pull(&mut self, tx: Sender<RequestResult>) -> () {
-        self.set_status(ProcessStatus::Pulling);
-
-        let result = tx.send(RequestResult {
+    pub fn pull(&mut self, tx: Sender<RequestResult>) -> anyhow::Result<()> {
+        tx.send(RequestResult {
             status: RequestResultStatus::Update,
-            process_status: Some(ProcessStatus::Off),
+            process_status: Some(ProcessStatus::Pulling),
             id: Some(self.get_id()),
             ..Default::default()
-        });
+        })?;
 
-        match result {
-            Err(e) => println!("ERROR: Process with id {} could not tell process handler that it was pulling. Cause: {}",self.get_id(),e),
-            _ => ()
-        }
+        Command::new("git")
+                .arg("pull")
+                .current_dir(self.path.clone())
+                .output()?;
+        
+        Ok(())
 
-        let orig_options = ScriptOptions::new();
-
-        let mut path = PathBuf::new();
-        path.push(&self.path);
-
-        let options = ScriptOptions {
-            working_directory: Some(path),
-            ..orig_options
-        };
-
-        let args = vec![];
-
-        let mut run_path: String = self.path.to_string();
-        run_path.push_str(r"/api/pull.sh");
-
-        run_script::run(run_path.as_str(), &args, &options).unwrap();
-
-        self.set_status(ProcessStatus::Off);
-        let result = tx.send(RequestResult {
-            status: RequestResultStatus::Update,
-            process_status: Some(ProcessStatus::Off),
-            id: Some(self.get_id()),
-            ..Default::default()
-        });
-
-        match result {
-            Err(e) => println!("ERROR: Process with id {} could not tell process handler that it was off after pulling. Cause: {}",self.get_id(),e),
-            _ => ()
-        }
     }
 
     /// Main loop for a process. Tries to pattern match requests from

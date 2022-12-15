@@ -14,7 +14,8 @@ use crate::communication::protocols::{
 };
 use crate::database;
 use crate::database::processes::ProcessSQLModel;
-use crate::states::DBConnections;
+use crate::endpoints::wait_response;
+use crate::states::{DBConnections, Timeout};
 use crate::states::ProcessComm;
 use rocket_auth::User;
 
@@ -22,32 +23,51 @@ use rocket_auth::User;
 #[serde(crate = "rocket::serde")]
 pub struct ProcessCreateRequest<'r> {
     pub name: &'r str,
-    pub path: &'r str,
-    pub start_path: &'r str,
-    pub stop_path: &'r str,
-    pub build_path: &'r str,
+    pub start_cmd: &'r str,
+    pub stop_cmd: &'r str,
+    pub build_cmd: &'r str,
     pub branch: &'r str,
     pub git_url: &'r str
 }
 
 #[post("/create", data="<content>")]
-pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<&'a str> {
+pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, timeout: &State<Timeout>, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<&'a str> {
     let process_model = ProcessSQLModel {
         name: content.name.to_string(),
-        path: content.path.to_string(),
-        start_path: content.start_path.to_string(),
-        build_path: content.build_path.to_string(),
-        stop_path: content.stop_path.to_string(),
+        path: "".to_string(),
+        start_cmd: content.start_cmd.to_string(),
+        build_cmd: content.build_cmd.to_string(),
+        stop_cmd: content.stop_cmd.to_string(),
         branch: content.branch.to_string(),
         git_url: content.git_url.to_string()
     };
 
     let result = executor::block_on(database::processes::add_process_to_db(&p_db.process, process_model));
+    let id: usize;
 
     match result {
-        Err(e) => {println!("{:?}", e); Custom(Status::InternalServerError, "Failed to create a process")},
-        _ => Custom(Status::Ok, "Successfully created a new process"),
-    }
+        Err(e) => {println!("{:?}", e); return Custom(Status::InternalServerError, "Failed to create a process")},
+        Ok(i) => id = i,
+    };
+
+    let (tx,rx) = unbounded();
+
+    let result = state.sender.send(Request {
+        from: From::Rocket,
+        rtype: RequestType::ProcessAdded,
+        id: Some(id),
+        answer_channel: Some(tx),
+        ..Default::default()
+    });
+
+    match result {
+        Err(e) => {println!("{}",e); return Custom(Status::InternalServerError, "Failed to create a process")},
+        _ => (),
+    };
+
+    return wait_response(timeout.timeout, rx);
+
 
 }
 
+ 

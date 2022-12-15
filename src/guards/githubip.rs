@@ -50,7 +50,8 @@ impl<'r> FromRequest<'r> for GithubIP {
     /// less than 3 seconds, an error is thrown and the request is denied. If the
     /// difference is more than 3 seconds, the request is approved.
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let socket_addr = req.headers().get_one("X-Real-IP").unwrap();
+        println!("{:?}", req.headers());
+        let socket_addr = req.remote().unwrap().to_string();
         let ip_list = retrieve_ip_list().await.expect("f");
         let mut str_ip_list: Vec<&str> = Vec::new();
         let ip_addr: &str = socket_addr.split(":").collect::<Vec<&str>>()[0];

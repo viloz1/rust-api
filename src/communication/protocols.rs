@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 /// Enum to specify the request from the frontend
-
+#[derive(Clone, Debug)]
 pub enum From {
     Rocket,
     Process,
@@ -22,6 +22,9 @@ pub enum RequestType {
     RestartPull,
     GetProcesses,
     Github,
+    ProcessAdded,
+    ProcessUpdated,
+    ProcessRemoved
 }
 
 impl fmt::Display for RequestType {
@@ -34,6 +37,9 @@ impl fmt::Display for RequestType {
             RequestType::RestartPull => write!(f, "RestartPull"),
             RequestType::GetProcesses => write!(f, "GetProcesses"),
             RequestType::Github => write!(f, "Github"),
+            RequestType::ProcessAdded => write!(f, "ProcessAdded"),
+            RequestType::ProcessRemoved => write!(f, "ProcessRemoved"),
+            RequestType::ProcessUpdated => write!(f, "ProcessUpdated"),
         }
     }
 }
@@ -50,6 +56,7 @@ pub fn string_to_rtype(string: &str) -> RequestType {
 
 /// The structure of messages from the frontend
 /// to the process handler
+#[derive(Clone, Debug)]
 pub struct Request {
     pub from: From,
     pub rtype: RequestType,

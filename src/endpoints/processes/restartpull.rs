@@ -13,13 +13,13 @@ use crossbeam::channel::unbounded;
 use rocket_auth::User;
 
 #[post("/restartpull/<id>")]
-pub fn restartpull(
+pub fn restartpull<'a>(
     _auth: User,
     id: usize,
     state: &State<ProcessComm>,
     timeout: &State<Timeout>,
     _time: TimerRequest,
-) -> Custom<Option<String>> {
+) -> Custom<&'a str> {
     let (tx, rx) = unbounded::<RequestResult>();
 
     let result = state.sender.send(Request {
@@ -31,7 +31,7 @@ pub fn restartpull(
     });
 
     match result {
-        Err(_) => return Custom(Status::InternalServerError, None),
+        Err(_) => return Custom(Status::InternalServerError, ""),
         _ => (),
     };
 

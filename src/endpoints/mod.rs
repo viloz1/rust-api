@@ -33,7 +33,7 @@ pub fn stage() -> AdHoc {
     })
 }
 
-pub fn wait_response(timeout: usize, rx: Receiver<RequestResult>) -> Custom<Option<String>> {
+pub fn wait_response<'a>(timeout: usize, rx: Receiver<RequestResult>) -> Custom<&'a str> {
     let mut t = 0;
     while t < timeout * 2 {
         let answer = rx.recv().unwrap();
@@ -43,17 +43,17 @@ pub fn wait_response(timeout: usize, rx: Receiver<RequestResult>) -> Custom<Opti
                 body: _,
                 process_status: _,
                 id: _,
-            } => return Custom(Status::Ok, None),
+            } => return Custom(Status::Ok, "Success"),
             RequestResult {
                 status: RequestResultStatus::Failed,
-                body,
+                body: Some(body),
                 process_status: _,
                 id: _,
-            } => return Custom(Status::InternalServerError, body),
+            } => {return Custom(Status::InternalServerError, "")},
             _ => (),
         }
         t += 1;
         thread::sleep(time::Duration::from_millis(500))
     }
-    return Custom(Status::InternalServerError, None);
+    return Custom(Status::InternalServerError, "");
 }

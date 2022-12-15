@@ -55,6 +55,9 @@ pub async fn get_processes(auth: User, state: &State<ProcessComm>) -> Custom<Opt
 }
 
 fn procstring_as_list(str: String) -> Vec<HashMap<String, String>> {
+    if str == "" {
+        return Vec::new();
+    }
     let mut rv_vec: Vec<HashMap<String, String>> = Vec::new();
     let split: Vec<&str> = str.split(":").collect();
     for s in split {

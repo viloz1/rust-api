@@ -5,6 +5,7 @@ use crate::guards::githubip::GithubIP;
 use crate::states::ProcessComm;
 use rocket::serde::{json::Json, Deserialize};
 use rocket::{post, State};
+use crossbeam::channel::unbounded;
 
 /// This struct is used to package the github JSON request into
 /// a usable struct. The struct only has one field, ref, since
@@ -33,11 +34,14 @@ pub async fn github<'a>(
 ) -> &'a str {
     let split: Vec<&str> = data.r#ref.split("/").collect();
     println!("{}", split[split.len() - 1].to_string());
+    let (tx,rx) = unbounded();
+
     let result = state.sender.clone().send(Request {
         from: From::Rocket,
         rtype: RequestType::Github,
         id: Some(id),
         push_branch: Some(split[split.len() - 1].to_string()),
+        answer_channel: Some(tx),
         ..Default::default()
     });
 

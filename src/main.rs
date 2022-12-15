@@ -69,7 +69,7 @@ async fn main() -> Result<(), Error> {
     let (tx, rx) = unbounded();
     let pool = process_db_pool.clone();
     thread::spawn(move || {
-        let mut proc_handler: ProcessHandler = ProcessHandler::new(rx);
+        let mut proc_handler: ProcessHandler = ProcessHandler::new(rx, &process_db_pool);
         proc_handler.start(&process_db_pool);
     });
     
