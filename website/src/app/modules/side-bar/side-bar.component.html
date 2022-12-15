@@ -1,0 +1,18 @@
+<div class="sidebar">
+    <div class="sidebar-contents">
+        <div class="siderbar-title">
+            RustAPI
+        </div>
+        <div class="routes">
+            <a class="link" *ngFor="let route of routes" [routerLink]="[route.route]">
+                {{route.display}}
+            </a>
+        </div>
+        <div class="logout">
+            <ds-button (clickEvent)="logout()">Logout</ds-button>
+        </div>
+    </div>
+    <div class="page-content">
+        <ng-content></ng-content>
+    </div>
+</div>

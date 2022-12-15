@@ -1,0 +1,13 @@
+<h1 mat-dialog-title>Add process</h1>
+<div mat-dialog-content>
+        <ds-input [control]="name" [label]="'Process name'" [placeholder]="'Example: API Website'"></ds-input>
+        <ds-input [control]="start" [label]="'Start make command'" [placeholder]="'Example: start'"></ds-input>
+        <ds-input [control]="stop" [label]="'Stop make command'" [placeholder]="'Example: stop'"></ds-input>
+        <ds-input [control]="build" [label]="'Build make command'" [placeholder]="'Example: build'"></ds-input>
+        <ds-input [control]="git" [label]="'Github URL'" [placeholder]="'Example: https://github.com/viloz1/rust-website'"></ds-input>
+        <ds-input [control]="branch" [label]="'Main branch'" [placeholder]="'The branch to pull from as well as reacting to new commits. Example: main'"></ds-input>
+  </div>
+<div mat-dialog-actions>
+  <ds-button mat-button mat-dialog-close>Cancel</ds-button>
+  <ds-button mat-button mat-dialog-close cdkFocusInitial [disabled]="!allValid()" (clickEvent)="add()">Add</ds-button>
+</div>

@@ -1,0 +1,8 @@
+<div class="processes">
+    <div class="process" *ngFor="let process of processes">
+        <app-process (triggerUpdate)="getProcesses()" [process]="process"></app-process>
+    </div>
+    <div class="process" (click)="addProcess()">
+        Add process
+    </div>
+</div>

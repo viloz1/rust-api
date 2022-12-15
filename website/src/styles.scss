@@ -1,0 +1,25 @@
+/* You can add global styles to this file, and also import other style files */
+
+@font-face {
+    font-family: "spacemono";
+    src: url(./app/design-system/font/SpaceMono-Regular.ttf);
+}
+
+html, body { height: 100%; }
+
+body { 
+    margin: 0;
+}
+
+* {
+    font-family: "spacemono";
+}
+
+:root {
+    --primary-color: rgb(14,24,27);
+    --secondary-color: rgb(173,173,173);
+    --text-color: rgb(173,173,173);
+    --red: rgb(128, 17, 20);
+    --green: rgb(7, 89, 15);
+    --yellow: rgb(97, 94, 8);
+}
