@@ -11,6 +11,7 @@ use database::processes::ProcessSQLModel;
 use process_handler::process::{Process, ProcessStatus};
 use rocket::fs::{FileServer, NamedFile};
 use rocket::{get, routes};
+use log::info;
 
 use rocket_auth::{prelude::Error, *};
 use rocket_dyn_templates::Template;
@@ -19,6 +20,7 @@ use futures::TryStreamExt;
 use crossbeam::channel::unbounded;
 use ctrlc;
 use sqlx::*;
+
 
 mod communication;
 mod endpoints;
@@ -37,9 +39,13 @@ async fn favicon() -> Option<NamedFile> {
 #[allow(unused_must_use)]
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    info!("Starting API...");
     if !std::path::Path::new("databases").exists() {
         std::fs::create_dir("databases");
     }
+
+    log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
+
 
     if !Path::new("databases/auth.db").exists() {
         File::create("databases/auth.db");
@@ -56,13 +62,10 @@ async fn main() -> Result<(), Error> {
     database::processes::populate(&process_db_pool).await?;
 
     let result = database::processes::get_all_proccesses(&process_db_pool).await?;
-    for r in result {
-        println!("{:?}", r);
-    }
 
     //The channel that Rocket will listen to
     ctrlc::set_handler(move || {
-        println!("received Ctrl+C!");
+        info!("Recieved CTRLC, shutting down");
     })
     .expect("Error setting CTRLC");
     //The channel that process_handler will listen too

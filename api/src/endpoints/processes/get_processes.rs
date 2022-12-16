@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::hash::Hash;
+use log::info;
 
 use crossbeam::channel::unbounded;
 use rocket::http::Status;
@@ -21,7 +22,7 @@ pub struct Task {
 }
 
 #[get("/get_processes")]
-pub async fn get_processes(auth: User, state: &State<ProcessComm>) -> Custom<Option<Json<Task>>> {
+pub async fn get_processes(_auth: User, state: &State<ProcessComm>) -> Custom<Option<Json<Task>>> {
     let (tx, rx) = unbounded();
     let result = state.sender.send(Request {
         from: From::Rocket,
@@ -29,6 +30,7 @@ pub async fn get_processes(auth: User, state: &State<ProcessComm>) -> Custom<Opt
         answer_channel: Some(tx),
         ..Default::default()
     });
+
     match result {
         Err(e) => {println!("{}",e); return Custom(Status::InternalServerError, None)},
         _ => (),

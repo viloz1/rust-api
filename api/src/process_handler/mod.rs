@@ -178,7 +178,7 @@ impl ProcessHandler<'_> {
                 process_status: Some(process_status),
             }) => {
                 let process = self.processes.get_mut(&id).unwrap();
-                println!("Recieved update: {:?}", process_status);
+                println!("Recieved update: Process with id {:?} is {:?}",id, process_status);
 
                 process.set_status(process_status);
             }

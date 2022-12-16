@@ -1,5 +1,5 @@
 [package]
-name = "rust-website"
+name = "rust-api"
 version = "0.1.1"
 edition = "2021"
 
@@ -26,3 +26,5 @@ ip-in-subnet = "0.1"
 crossbeam-utils = "0.8.14"
 anyhow = "1.0.66"
 futures = "0.3"
+log4rs = {version = "1.2.0", features = ["rolling_file_appender", "fixed_window_roller", "size_trigger"]}
+log = "0.4.17"

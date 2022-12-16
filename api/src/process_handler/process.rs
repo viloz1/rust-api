@@ -176,6 +176,13 @@ impl Process {
                 .current_dir(self.path.clone())
                 .output()?;
         
+        tx.send(RequestResult {
+            status: RequestResultStatus::Update,
+            process_status: Some(ProcessStatus::Off),
+            id: Some(self.get_id()),
+            ..Default::default()
+        })?;
+
         Ok(())
 
     }
@@ -187,6 +194,7 @@ impl Process {
         println!("Loop started for {}", self.get_name());
         //The program won't start if the child spawned isn't assigned (owned)
         //Otherwise, the child is dropped and the process stops
+        self.pull(tx.clone());
         let mut child = self.start(tx.clone());
         loop {
             let mail = rx.recv();

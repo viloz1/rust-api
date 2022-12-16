@@ -32,7 +32,7 @@ pub async fn populate(pool: &SqlitePool) -> Result<(),Error> {
     .execute(pool)
     .await?;
 
-    println!("Succesfully populated db");
+    info!("Populated process database");
 
     return Ok(())
 }
@@ -48,7 +48,6 @@ pub async fn add_process_to_db(pool: &SqlitePool, process: ProcessSQLModel) -> R
     .bind(process.branch)
 		.execute(pool)
 		.await?;
-    println!("{}",row.last_insert_rowid());
     return Ok(row.last_insert_rowid() as usize)
 }
 
@@ -79,7 +78,7 @@ pub async fn update_process_in_db(pool: &SqlitePool, process: ProcessSQLModel, i
 }
 
 pub async fn get_all_proccesses(pool: &SqlitePool) -> Result<Vec<(usize, ProcessSQLModel)>,Error> {
-  let rows = sqlx::query("SELECT * FROM Processes order by Id").fetch_all(pool).await?;
+  let rows = sqlx::query("SELECT * FROM Processes order by cast(Id as int)").fetch_all(pool).await?;
   let result = rows
 		.iter()
 		.map(|r| 

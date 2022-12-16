@@ -46,7 +46,7 @@ pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, timeout: 
     let id: usize;
 
     match result {
-        Err(e) => {println!("{:?}", e); return Custom(Status::InternalServerError, "Failed to create a process")},
+        Err(e) => {error!("Failed to create a process for request /create: {:?}", e); return Custom(Status::InternalServerError, "Failed to create a process")},
         Ok(i) => id = i,
     };
 
@@ -61,7 +61,7 @@ pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, timeout: 
     });
 
     match result {
-        Err(e) => {println!("{}",e); return Custom(Status::InternalServerError, "Failed to create a process")},
+        Err(e) => {error!("Failed to create a process for request /create: {:?}", e); return Custom(Status::InternalServerError, "Failed to create a process")},
         _ => (),
     };
 
