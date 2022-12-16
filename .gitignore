@@ -1,0 +1,52 @@
+api/target
+api/Cargo.lock
+api/databases
+api/projects
+api/log
+
+
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# Compiled output
+website/dist
+website/tmp
+website/out-tsc
+website/bazel-out
+website\package-lock.json
+
+# Node
+website/node_modules
+website/npm-debug.log
+website/yarn-error.log
+
+
+# IDEs and editors
+website/.idea/
+website/.project
+website/.classpath
+website/.c9/
+website/*.launch
+website/.settings/
+website/*.sublime-workspace
+
+# Visual Studio Code
+website/.vscode/*
+website/!.vscode/settings.json
+website/!.vscode/tasks.json
+website/.vscode/launch.json
+website/!.vscode/extensions.json
+website/.history/*
+
+# Miscellaneous
+website/.angular/cache
+website/.sass-cache/
+website/connect.lock
+website/coverage
+website/libpeerconnection.log
+website/testem.log
+website/typings
+
+# System files
+website/.DS_Store
+website/Thumbs.db
+website/package-lock.json
