@@ -33,7 +33,7 @@ export class ApiAuthService {
   }
 
   check_login() {
-    let header: HttpHeaders = new HttpHeaders();
+    let header: HttpHeaders = this.header;
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
     const r = this.http.post("http://localhost:4200/api/auth/check_login", {headers: header});
