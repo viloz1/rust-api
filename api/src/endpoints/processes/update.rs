@@ -7,6 +7,7 @@ use futures::executor;
 
 use crate::database;
 use crate::database::processes::ProcessSQLModel;
+use crate::endpoints::HTTPResponse;
 use crate::states::DBConnections;
 use crate::states::ProcessComm;
 use rocket_auth::User;
@@ -24,7 +25,7 @@ pub struct ProcessCreateRequest<'r> {
 }
 
 #[post("/update/<id>", data="<content>")]
-pub fn update<'a>(id: usize, content: Json<ProcessCreateRequest<'_>>, auth: User, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<&'a str> {
+pub fn update<'a>(id: usize, content: Json<ProcessCreateRequest<'_>>, auth: User, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<Json<HTTPResponse<'a>>> {
     println!("{}", content.name);
     
     let process_model = ProcessSQLModel {
@@ -40,8 +41,8 @@ pub fn update<'a>(id: usize, content: Json<ProcessCreateRequest<'_>>, auth: User
     let result = executor::block_on(database::processes::update_process_in_db(&p_db.process, process_model, id));
 
     match result {
-        Err(_) => Custom(Status::InternalServerError, "Failed to update process"),
-        _ => Custom(Status::Ok, "Successfully updated process"),
+        Err(_) => Custom(Status::InternalServerError, Json(HTTPResponse { content: "Internal errer" })),
+        _ => Custom(Status::Ok, Json(HTTPResponse { content: "Success" })),
     }
 
 }

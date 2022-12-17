@@ -3,6 +3,7 @@ import { Process, ProcessesModel } from 'src/app/models/Processes';
 import { ApiProcessesService } from 'src/app/services/api-processes.service';
 import { CreateProcessDialogComponent } from './create-process-dialog/create-process-dialog.component';
 import {MatDialog} from '@angular/material/dialog';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 
 @Component({
@@ -13,7 +14,7 @@ import {MatDialog} from '@angular/material/dialog';
 export class ProcessesComponent implements OnInit {
 
   constructor(private api: ApiProcessesService, public dialog: MatDialog) { }
-
+  faPlus = faPlus;
   processes: any = [];
 
   ngOnInit(): void {

@@ -14,7 +14,7 @@ use crate::communication::protocols::{
 };
 use crate::database;
 use crate::database::processes::ProcessSQLModel;
-use crate::endpoints::wait_response;
+use crate::endpoints::{wait_response, HTTPResponse};
 use crate::states::{DBConnections, Timeout};
 use crate::states::ProcessComm;
 use rocket_auth::User;
@@ -31,7 +31,7 @@ pub struct ProcessCreateRequest<'r> {
 }
 
 #[post("/create", data="<content>")]
-pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, timeout: &State<Timeout>, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<&'a str> {
+pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, timeout: &State<Timeout>, state: &'a State<ProcessComm>, p_db: &'a State<DBConnections>) -> Custom<Json<HTTPResponse<'a>>> {
     let process_model = ProcessSQLModel {
         name: content.name.to_string(),
         path: "".to_string(),
@@ -46,7 +46,7 @@ pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, timeout: 
     let id: usize;
 
     match result {
-        Err(e) => {error!("Failed to create a process for request /create: {:?}", e); return Custom(Status::InternalServerError, "Failed to create a process")},
+        Err(e) => {error!("Failed to create a process for request /create: {:?}", e); return Custom(Status::InternalServerError, Json(HTTPResponse{content: "Failed to create process"}))},
         Ok(i) => id = i,
     };
 
@@ -61,7 +61,7 @@ pub fn create<'a>(content: Json<ProcessCreateRequest<'_>>, auth: User, timeout: 
     });
 
     match result {
-        Err(e) => {error!("Failed to create a process for request /create: {:?}", e); return Custom(Status::InternalServerError, "Failed to create a process")},
+        Err(e) => {error!("Failed to create a process for request /create: {:?}", e); return Custom(Status::InternalServerError, Json(HTTPResponse{content: "Failed to create process"}))},
         _ => (),
     };
 

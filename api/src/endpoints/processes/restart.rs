@@ -1,11 +1,12 @@
 use rocket::http::Status;
 use rocket::response::status::Custom;
 use rocket::State;
+use rocket::serde::json::Json;
 
 use crate::communication::protocols::{
     From, Request, RequestResult, RequestType,
 };
-use crate::endpoints::wait_response;
+use crate::endpoints::{wait_response, HTTPResponse};
 use crate::guards::timer::TimerRequest;
 use crate::states::ProcessComm;
 use crate::states::Timeout;
@@ -19,7 +20,7 @@ pub fn restart<'a>(
     state: &State<ProcessComm>,
     timeout: &State<Timeout>,
     _time: TimerRequest,
-) -> Custom<&'a str> {
+) -> Custom<Json<HTTPResponse<'a>>> {
     let (tx, rx) = unbounded::<RequestResult>();
 
     let result = state.sender.send(Request {
@@ -31,7 +32,7 @@ pub fn restart<'a>(
     });
 
     match result {
-        Err(_) => return Custom(Status::InternalServerError, ""),
+        Err(_) => return Custom(Status::InternalServerError, Json(HTTPResponse{content: ""})),
         _ => (),
     };
 

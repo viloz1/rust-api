@@ -4,6 +4,7 @@ use auth::*;
 use crossbeam::channel::Receiver;
 use processes::*;
 use rocket::{fairing::AdHoc, response::status::Custom, http::Status};
+use rocket::serde::{Serialize, json::Json};
 
 use crate::{communication::protocols::{RequestResult, RequestResultStatus}, states::Timeout};
 
@@ -33,7 +34,13 @@ pub fn stage() -> AdHoc {
     })
 }
 
-pub fn wait_response<'a>(timeout: usize, rx: Receiver<RequestResult>) -> Custom<&'a str> {
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct HTTPResponse<'r> {
+    content: &'r str
+}
+
+pub fn wait_response<'a>(timeout: usize, rx: Receiver<RequestResult>) -> Custom<Json<HTTPResponse<'a>>>  {
     let mut t = 0;
     while t < timeout * 2 {
         let answer = rx.recv().unwrap();
@@ -43,17 +50,17 @@ pub fn wait_response<'a>(timeout: usize, rx: Receiver<RequestResult>) -> Custom<
                 body: _,
                 process_status: _,
                 id: _,
-            } => return Custom(Status::Ok, "Success"),
+            } => return Custom(Status::Ok, Json(HTTPResponse { content: "Success" })),
             RequestResult {
                 status: RequestResultStatus::Failed,
                 body: Some(body),
                 process_status: _,
                 id: _,
-            } => {return Custom(Status::InternalServerError, "")},
+            } => {return Custom(Status::InternalServerError, Json(HTTPResponse { content: "There was an error" }))},
             _ => (),
         }
         t += 1;
         thread::sleep(time::Duration::from_millis(500))
     }
-    return Custom(Status::InternalServerError, "");
+    return Custom(Status::InternalServerError, Json(HTTPResponse { content: "The request timed out" }));
 }

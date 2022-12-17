@@ -44,7 +44,7 @@ export class ProcessComponent implements OnInit {
         this.triggerUpdate.emit();
       },
       error: (e) => {
-        this.snackbar.openSnackBar("Failed to start process: ","",5000);
+        this.snackbar.openSnackBar("Failed to start process","",5000);
         console.log(e)
       },
       complete: () => console.info('complete') 
@@ -55,21 +55,29 @@ export class ProcessComponent implements OnInit {
 
   stop() {
     
-    this.api.stopProcess(this.process.id).subscribe((result) => {
-      console.log(result)
-      this.triggerUpdate.emit();
-    })
-    
-    this.api.update(33).subscribe((data) => {
-      console.log(data);
+    this.api.stopProcess(this.process.id).subscribe({
+      next: (v) => {
+        this.triggerUpdate.emit();
+      },
+      error: (e) => {
+        this.snackbar.openSnackBar("Failed to stop process","",5000);
+        console.log(e)
+      },
+      complete: () => console.info('complete') 
     });
   }
 
   restart() {
-    this.api.restartProcess(this.process.id).subscribe((result) => {
-      console.log(result)
-      this.triggerUpdate.emit();
-    })
+    this.api.restartProcess(this.process.id).subscribe({
+      next: (v) => {
+        this.triggerUpdate.emit();
+      },
+      error: (e) => {
+        this.snackbar.openSnackBar("Failed to stop restart process","",5000);
+        console.log(e)
+      },
+      complete: () => console.info('complete') 
+    });
   }
 
 
