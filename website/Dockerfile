@@ -1,14 +1,11 @@
-# build environment
-FROM node:16.10.0-alpine as builder
+FROM node:18.12.1-alpine as builder
 WORKDIR /app
-ENV PATH /app/node_modules/.bin:$PATH
-COPY . ./
-RUN npm install react-scripts@3.4.1 -g --silent
+COPY . /app
+RUN npm install -g @angular/cli
 RUN npm install
 RUN npm run build
 
-# production environment
-FROM nginx:stable-alpine
-COPY --from=builder /app/build /usr/share/nginx/html
-EXPOSE 3000
+FROM nginx:1.19.0
+COPY --from=builder /app/dist/rust-api-frontend /usr/share/nginx/html
+EXPOSE 4200
 CMD ["nginx", "-g", "daemon off;"]
