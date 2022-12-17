@@ -19,7 +19,7 @@ export class ApiAuthService {
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
 
-    const r = this.http.post("http://localhost:4200/api/auth/login",JSON.stringify({"email": email, "password": password}), {headers: header});
+    const r = this.http.post("/api/auth/login",JSON.stringify({"email": email, "password": password}), {headers: header});
     return r;
   }
 
@@ -28,7 +28,7 @@ export class ApiAuthService {
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded"
     );
-    const r = this.http.post("http://localhost:4200/api/auth/logout", {headers: header});
+    const r = this.http.post("/api/auth/logout", {headers: header});
     return r;
   }
 
@@ -36,7 +36,7 @@ export class ApiAuthService {
     let header: HttpHeaders = this.header;
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
-    const r = this.http.post("http://localhost:4200/api/auth/check_login", {headers: header});
+    const r = this.http.post("/api/auth/check_login", {headers: header});
     return r;
   }
 

@@ -18,23 +18,23 @@ export class ApiProcessesService {
 
   getProcesses() {
     let header: HttpHeaders = this.header;
-    return this.http.get("http://localhost:4200/api/processes/get_processes", {headers: header});
+    return this.http.get("/api/processes/get_processes", {headers: header});
   }
 
   startProcess(id: number) {
     let header: HttpHeaders = this.header;
     console.log("start")
-    return this.http.post(`http://localhost:4200/api/processes/start/${id}`, {headers: header});
+    return this.http.post(`/api/processes/start/${id}`, {headers: header});
   }
 
   stopProcess(id: number) {
     let header: HttpHeaders = this.header;
-    return this.http.post(`http://localhost:4200/api/processes/stop/${id}`, {headers: header});
+    return this.http.post(`/api/processes/stop/${id}`, {headers: header});
   }
 
   restartProcess(id: number) {
     let header: HttpHeaders = this.header;
-    return this.http.post(`http://localhost:4200/api/processes/restart/${id}`, {headers: header});
+    return this.http.post(`/api/processes/restart/${id}`, {headers: header});
   }
 
   create(name: string, start: string, stop: string, build: string, git: string, branch: string) {
@@ -47,7 +47,7 @@ export class ApiProcessesService {
       branch: branch,
       git_url: git,
     }
-    return this.http.post(`http://localhost:4200/api/processes/create`, model, {headers: header, responseType: "text"});
+    return this.http.post(`/api/processes/create`, model, {headers: header, responseType: "text"});
   }
 
   update(id: number) {
@@ -61,6 +61,6 @@ export class ApiProcessesService {
       branch: "Hej ts updated2",
       git_url: "Hej ts updated1",
     }
-    return this.http.post(`http://localhost:4200/api/processes/update/${id}`, model, {headers: header, responseType: "text"});
+    return this.http.post(`/api/processes/update/${id}`, model, {headers: header, responseType: "text"});
   }
 }
