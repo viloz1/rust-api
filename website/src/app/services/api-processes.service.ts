@@ -8,31 +8,37 @@ import { Process } from '../models/Processes';
 })
 export class ApiProcessesService {
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {
+    this.header.set("Access-Control-Allow-Origin", "*")
+    this.header.set("Access-Control-Allow-Methods", "DELETE, POST, GET, OPTIONS")
+    this.header.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+   }
+
+  header = new HttpHeaders();
 
   getProcesses() {
-    let header: HttpHeaders = new HttpHeaders();
+    let header: HttpHeaders = this.header;
     return this.http.get("http://localhost:4200/api/processes/get_processes", {headers: header});
   }
 
   startProcess(id: number) {
-    let header: HttpHeaders = new HttpHeaders();
+    let header: HttpHeaders = this.header;
     console.log("start")
     return this.http.post(`http://localhost:4200/api/processes/start/${id}`, {headers: header});
   }
 
   stopProcess(id: number) {
-    let header: HttpHeaders = new HttpHeaders();
+    let header: HttpHeaders = this.header;
     return this.http.post(`http://localhost:4200/api/processes/stop/${id}`, {headers: header});
   }
 
   restartProcess(id: number) {
-    let header: HttpHeaders = new HttpHeaders();
+    let header: HttpHeaders = this.header;
     return this.http.post(`http://localhost:4200/api/processes/restart/${id}`, {headers: header});
   }
 
   create(name: string, start: string, stop: string, build: string, git: string, branch: string) {
-    let header: HttpHeaders = new HttpHeaders();
+    let header: HttpHeaders = this.header;
     let model = {
       name: name,
       start_cmd: start,
@@ -45,7 +51,7 @@ export class ApiProcessesService {
   }
 
   update(id: number) {
-    let header: HttpHeaders = new HttpHeaders();
+    let header: HttpHeaders = this.header;
     let model = {
       name: "Hej ts updated7",
       path: "Hej ts updated6",

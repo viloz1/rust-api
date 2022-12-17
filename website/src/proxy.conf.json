@@ -1,6 +1,9 @@
 {
-    "/api": {
-      "target": "https://api.viloz.xyz",
-      "secure": false
-    }
-  }
+      "/api": {
+            "target": "https://api.viloz.xyz",
+            "secure": false,
+            "changeOrigin": true,
+            "logLevel": "debug"
+      }
+}
+  
