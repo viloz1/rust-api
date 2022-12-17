@@ -1,5 +1,5 @@
 {
-      "/api": {
+      "/api/*": {
             "target": "https://api.viloz.xyz",
             "secure": false,
             "changeOrigin": true,
