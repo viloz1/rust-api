@@ -1,0 +1,20 @@
+<ds-card class="process" [cardStyle]="{width: '100%', height: '30%', 'box-sizing': 'border-box'}">
+    <div class="content">
+        <div class="titles">
+            <p>Id</p>
+            <p>Name</p>
+            <p>Status</p>
+        </div>
+        <div class="values">
+            <p>{{process.id}}</p>
+            <p>{{process.name}}</p>
+            <div class="status">
+                <p>{{process.status}}</p>
+                <fa-icon [ngStyle]="{'color': color}" [icon]="faCircle"></fa-icon>
+            </div>
+        </div>
+    </div>
+    <ds-button (clickEvent)="start()">Start</ds-button>
+    <ds-button (clickEvent)="stop()">Stop</ds-button>
+    <ds-button (clickEvent)="restart()">Restart</ds-button>
+</ds-card>

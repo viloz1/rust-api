@@ -1,0 +1,22 @@
+.process {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+}
+
+.content {
+    display: flex;
+    padding: 10px;
+    justify-content: space-between;
+    color: var(--text-color);
+}
+
+.status {
+    display: flex;
+    gap: 5px
+}
+
+.fa-circle {
+    color: red
+}

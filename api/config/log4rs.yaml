@@ -1,0 +1,42 @@
+appenders:
+  stdout:
+    kind: console
+  req:
+    kind: rolling_file
+    path: "log/requests.log"
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} | {({l}):5.5} | {f}:{L} — {m}{n}"
+    policy:
+      trigger:
+        kind: size
+        limit: 50kb
+      roller:
+        kind: fixed_window
+        base: 1
+        count: 10
+        pattern: "log/requests_{}.log"
+  stdout-file:
+    kind: rolling_file
+    path: "log/full.log"
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} | {({l}):5.5} | {f}:{L} — {m}{n}"
+    policy:
+      trigger:
+        kind: size
+        limit: 50kb
+      roller:
+        kind: fixed_window
+        base: 1
+        count: 10
+        pattern: "log/full_{}.log"
+root:
+  level: trace
+  appenders:
+    - stdout
+    - stdout-file
+loggers:
+  req:
+    level: info
+    appenders:
+      - req
+    additive: false

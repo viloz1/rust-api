@@ -1,0 +1,45 @@
+<div class="login">
+  <mat-card class="circle-card">
+    <form class="form">
+      <ds-input 
+        [placeholder]="'Ex. pat@example.com'"
+        [label]="'Email'"
+        [control]="emailFormControl"
+        [type]="'email'"
+        [matcher]="matcher"
+        class="input">
+  
+        <ng-template #error>
+          <div *ngIf="emailFormControl.hasError('email') && !emailFormControl.hasError('required')">
+            Please enter a valid email address
+          </div>
+        </ng-template>
+  
+        <ng-template #error>
+          <div *ngIf="emailFormControl.hasError('required')">
+            Email is <strong>required</strong>
+          </div>
+        </ng-template>
+  
+      </ds-input>
+      <ds-input 
+        [placeholder]="'Enter password...'"
+        [label]="'Password'"
+        [control]="passwordFormControl"
+        [type]="'password'"
+        class="input">
+  
+        <ng-template #error>
+          <div *ngIf="passwordFormControl.hasError('required')">
+            Password is <strong>required</strong>
+          </div>
+        </ng-template>
+  
+      </ds-input>
+    </form>
+    <div>
+      <ds-button (clickEvent)="submit()">Login</ds-button>
+    </div>
+  </mat-card>
+  
+</div>

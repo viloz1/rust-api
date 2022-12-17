@@ -1,0 +1,8 @@
+<mat-form-field class="ds-input" appearance="fill">
+    <mat-label>{{label}}</mat-label>
+    <input class="input" [type]="type" matInput [formControl]="control" [errorStateMatcher]="matcher"
+           [placeholder]="placeholder">
+    <mat-error *ngFor="let child of errorChildren.toArray()">
+        <ng-container *ngTemplateOutlet="child"></ng-container>
+    </mat-error>
+</mat-form-field>

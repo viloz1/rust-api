@@ -1,0 +1,12 @@
+<div class="processes">
+    <div class="process" *ngFor="let process of processes">
+        <app-process (triggerUpdate)="getProcesses()" [process]="process"></app-process>
+    </div>
+    <div class="process" (click)="addProcess()">
+        <ds-card [cardStyle]="{width: '100%', height: '30%', 'box-sizing': 'border-box'}">
+            <div class="plus">
+                <fa-icon [icon]="faPlus" size="6x" [style]="{color: 'var(--green)'}"></fa-icon>
+            </div>
+        </ds-card>
+    </div>
+</div>
