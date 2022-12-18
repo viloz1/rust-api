@@ -37,8 +37,9 @@ export class ApiAuthService {
 
   check_login() {
     let header: HttpHeaders = this.header;
-
+    header = header.set("Access-Control-Allow-Origin", "*");
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
+
     const r = this.http.post(this.url+"/api/auth/check_login", {headers: header});
     return r;
   }

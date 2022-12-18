@@ -6,3 +6,4 @@
 
 pub mod githubip;
 pub mod timer;
+pub mod cors;

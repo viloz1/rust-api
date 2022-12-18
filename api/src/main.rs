@@ -31,6 +31,8 @@ mod database;
 
 use process_handler::ProcessHandler;
 
+use crate::guards::cors::CORS;
+
 #[get("/favicon.ico")]
 async fn favicon() -> Option<NamedFile> {
     NamedFile::open(Path::new("public/favicon.ico")).await.ok()
@@ -79,6 +81,7 @@ async fn main() -> Result<(), Error> {
     rocket::build()
         .attach(states::stage(tx, 5, pool))
         .attach(endpoints::stage())
+        .attach(CORS)
         .manage(conn)
         .manage(users)
         .launch()

@@ -14,6 +14,7 @@ mod processes;
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("API", |rocket| async {
         rocket
+            .mount("/", routes![all_options])
             .mount(
                 "/api/auth",
                 routes![check_login::check_login, login::login, logout::logout],
@@ -38,6 +39,11 @@ pub fn stage() -> AdHoc {
 #[serde(crate = "rocket::serde")]
 pub struct HTTPResponse<'r> {
     content: &'r str
+}
+
+#[options("/<_..>")]
+fn all_options() {
+    /* Intentionally left empty */
 }
 
 pub fn wait_response<'a>(timeout: usize, rx: Receiver<RequestResult>) -> Custom<Json<HTTPResponse<'a>>>  {
