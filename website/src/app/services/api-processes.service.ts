@@ -20,23 +20,23 @@ export class ApiProcessesService {
 
   getProcesses() {
     let header: HttpHeaders = this.header;
-    return this.http.get(this.url+"/api/processes/get_processes", {headers: header});
+    return this.http.get(this.url+"/api/processes/get_processes", {withCredentials: true, headers: header});
   }
 
   startProcess(id: number) {
     let header: HttpHeaders = this.header;
     console.log("start")
-    return this.http.post(this.url+`/api/processes/start/${id}`, {headers: header});
+    return this.http.post(this.url+`/api/processes/start/${id}`, null, {withCredentials: true, headers: header});
   }
 
   stopProcess(id: number) {
     let header: HttpHeaders = this.header;
-    return this.http.post(this.url+`/api/processes/stop/${id}`, {headers: header});
+    return this.http.post(this.url+`/api/processes/stop/${id}`, null, {withCredentials: true, headers: header});
   }
 
   restartProcess(id: number) {
     let header: HttpHeaders = this.header;
-    return this.http.post(this.url+`/api/processes/restart/${id}`, {headers: header});
+    return this.http.post(this.url+`/api/processes/restart/${id}`, null, {withCredentials: true, headers: header});
   }
 
   create(name: string, start: string, stop: string, build: string, git: string, branch: string) {
@@ -49,7 +49,7 @@ export class ApiProcessesService {
       branch: branch,
       git_url: git,
     }
-    return this.http.post(this.url+`/api/processes/create`, model, {headers: header, responseType: "text"});
+    return this.http.post(this.url+`/api/processes/create`, model, {headers: header, responseType: "text", withCredentials: true});
   }
 
   update(id: number) {
@@ -63,6 +63,6 @@ export class ApiProcessesService {
       branch: "Hej ts updated2",
       git_url: "Hej ts updated1",
     }
-    return this.http.post(this.url+`/api/processes/update/${id}`, model, {headers: header, responseType: "text"});
+    return this.http.post(this.url+`/api/processes/update/${id}`, model, {headers: header, responseType: "text", withCredentials: true});
   }
 }

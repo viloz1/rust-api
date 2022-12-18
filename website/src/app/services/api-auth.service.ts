@@ -8,9 +8,7 @@ import { environment } from 'src/environments/environment';
 export class ApiAuthService {
 
   constructor(private http: HttpClient) {
-    this.header.set("Access-Control-Allow-Origin", "*")
-    this.header.set("Access-Control-Allow-Methods", "DELETE, POST, GET, OPTIONS")
-    this.header.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+
    }
 
 
@@ -21,26 +19,28 @@ export class ApiAuthService {
     let header: HttpHeaders = this.header;
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
+    
 
-    const r = this.http.post(this.url+"/api/auth/login",JSON.stringify({"email": email, "password": password}), {headers: header});
+    const r = this.http.post(this.url+"/api/auth/login",JSON.stringify({"email": email, "password": password}), {headers: header, withCredentials: true});
     return r;
   }
 
   logout() {
     let header: HttpHeaders = this.header;
 
-    header = header.set("Content-Type", "application/x-www-form-urlencoded"
-    );
-    const r = this.http.post(this.url+"/api/auth/logout", {headers: header});
+    header = header.set("Content-Type", "application/x-www-form-urlencoded");
+
+    const r = this.http.post(this.url+"/api/auth/logout", {headers: header, withCredentials: true});
     return r;
   }
 
   check_login() {
     let header: HttpHeaders = this.header;
-    header = header.set("Access-Control-Allow-Origin", "*");
-    header = header.set("Content-Type", "application/x-www-form-urlencoded");
+    header = header.set("Access-Control-Allow-Origin", `http://localhost:1337/` )
 
-    const r = this.http.post(this.url+"/api/auth/check_login", {headers: header});
+    console.log(header);
+
+    const r = this.http.post(this.url+"/api/auth/check_login", null, {headers: header, withCredentials: true});
     return r;
   }
 
