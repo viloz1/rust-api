@@ -224,7 +224,9 @@ impl ProcessHandler<'_> {
                     Ok(p) => proc = p
                 };
 
-                self.start_process(
+                send_reply(RequestResultStatus::Success, answer_channel, None);
+
+                executor::block_on(self.start_process(
                     proc.1.name,
                     proc.0,
                     proc.1.git_url,
@@ -233,8 +235,7 @@ impl ProcessHandler<'_> {
                     proc.1.start_cmd,
                     proc.1.stop_cmd,
                     proc.1.build_cmd
-                );
-                send_reply(RequestResultStatus::Success, answer_channel, None);
+                ));
             }
             /* 
             Ok(Request {
