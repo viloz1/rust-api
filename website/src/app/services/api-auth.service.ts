@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -12,14 +13,16 @@ export class ApiAuthService {
     this.header.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
    }
 
+
   header = new HttpHeaders();
+  url = environment.apiUrl;
 
   login(email: String, password: String) {
     let header: HttpHeaders = this.header;
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
 
-    const r = this.http.post("/api/auth/login",JSON.stringify({"email": email, "password": password}), {headers: header});
+    const r = this.http.post(this.url+"/api/auth/login",JSON.stringify({"email": email, "password": password}), {headers: header});
     return r;
   }
 
@@ -28,7 +31,7 @@ export class ApiAuthService {
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded"
     );
-    const r = this.http.post("/api/auth/logout", {headers: header});
+    const r = this.http.post(this.url+"/api/auth/logout", {headers: header});
     return r;
   }
 
@@ -36,7 +39,7 @@ export class ApiAuthService {
     let header: HttpHeaders = this.header;
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
-    const r = this.http.post("/api/auth/check_login", {headers: header});
+    const r = this.http.post(this.url+"/api/auth/check_login", {headers: header});
     return r;
   }
 
