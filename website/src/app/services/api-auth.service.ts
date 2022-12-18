@@ -30,7 +30,7 @@ export class ApiAuthService {
 
     header = header.set("Content-Type", "application/x-www-form-urlencoded");
 
-    const r = this.http.post(this.url+"/api/auth/logout", {headers: header, withCredentials: true});
+    const r = this.http.post(this.url+"/api/auth/logout", null, {headers: header, withCredentials: true});
     return r;
   }
 
