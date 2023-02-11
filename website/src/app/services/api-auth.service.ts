@@ -36,9 +36,6 @@ export class ApiAuthService {
 
   check_login() {
     let header: HttpHeaders = this.header;
-    header = header.set("Access-Control-Allow-Origin", `http://localhost:1337/` )
-
-    console.log(header);
 
     const r = this.http.post(this.url+"/api/auth/check_login", null, {headers: header, withCredentials: true});
     return r;
