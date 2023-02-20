@@ -1,9 +1,9 @@
-use crossbeam::channel::unbounded;
-use sqlx::{Row, SqlitePool, Error, sqlite::SqliteRow};
+use anyhow::{Result, anyhow};
+use sqlx::{Row, SqlitePool, Error};
 
-use crate::process_handler::process::{Process, ProcessStatus};
+use super::sanitize_string;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessSQLModel {
   pub name: String,
   pub path: String,
@@ -37,7 +37,43 @@ pub async fn populate(pool: &SqlitePool) -> Result<(),Error> {
     return Ok(())
 }
 
-pub async fn add_process_to_db(pool: &SqlitePool, process: ProcessSQLModel) -> Result<(usize),Error>  {
+fn sanitize_process_sql_model(process: ProcessSQLModel) -> Result<()> {
+  if let Err(_) = sanitize_string(process.name) {
+    return Err(anyhow!("Illegal string"));
+  }
+
+  if let Err(_) = sanitize_string(process.path) {
+    return Err(anyhow!("Illegal string"));
+  }
+
+  if let Err(_) = sanitize_string(process.start_cmd) {
+    return Err(anyhow!("Illegal string"));
+  }
+
+  if let Err(_) = sanitize_string(process.stop_cmd) {
+    return Err(anyhow!("Illegal string"));
+  }
+
+  if let Err(_) = sanitize_string(process.build_cmd) {
+    return Err(anyhow!("Illegal string"));
+  }
+
+  if let Err(_) = sanitize_string(process.branch) {
+    return Err(anyhow!("Illegal string"));
+  }
+
+  if let Err(_) = sanitize_string(process.git_url) {
+    return Err(anyhow!("Illegal string"));
+  }
+
+  Ok(())
+}
+
+pub async fn add_process_to_db(pool: &SqlitePool, process: ProcessSQLModel) -> Result<usize,Error>  {
+  if let Err(_) = sanitize_process_sql_model(process.clone()) {
+    return Err(sqlx::Error::RowNotFound)
+  }
+
   let row = sqlx::query("insert or ignore into Processes (Name, Path, Start, Stop, Build, GitURL, Branch) values ($1, $2, $3, $4, $5, $6, $7)")
 		.bind(process.name)
     .bind(process.path)
@@ -52,6 +88,10 @@ pub async fn add_process_to_db(pool: &SqlitePool, process: ProcessSQLModel) -> R
 }
 
 pub async fn update_process_in_db(pool: &SqlitePool, process: ProcessSQLModel, id: usize) -> Result<(),Error>  {
+  if let Err(_) = sanitize_process_sql_model(process.clone()) {
+    return Err(sqlx::Error::RowNotFound)
+  }
+
   sqlx::query(r#"
   update Processes set
     Name = ?1,
@@ -98,6 +138,7 @@ pub async fn get_all_proccesses(pool: &SqlitePool) -> Result<Vec<(usize, Process
 }
 
 pub async fn get_process_by_id(id: usize, pool: &SqlitePool) -> Result<(usize, ProcessSQLModel),Error> {
+  
   let r = sqlx::query("SELECT * FROM Processes where Id = ?1").bind(id as i64).fetch_one(pool).await?;
   let result = (
     r.get::<i64, _ >("Id") as usize,
