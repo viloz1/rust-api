@@ -7,7 +7,6 @@
 
 use crossbeam::channel::{unbounded, Receiver, RecvError, Select, Sender};
 use futures::executor;
-use rocket_auth::Result;
 use run_script::ScriptOptions;
 use serde::__private::de;
 use sqlx::SqlitePool;

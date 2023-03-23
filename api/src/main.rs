@@ -15,7 +15,7 @@ use process_handler::process::{Process, ProcessStatus};
 
 use crossbeam::channel::unbounded;
 use ctrlc;
-use sqlx::SqlitePool;
+use sqlx::sqlite::SqlitePool;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
@@ -42,7 +42,7 @@ async fn manual_hello() -> impl Responder {
 
 #[allow(unused_must_use)]
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), io::Error>{
     info!("Starting API...");
     if !std::path::Path::new("databases").exists() {
         std::fs::create_dir("databases");
@@ -59,21 +59,21 @@ async fn main() -> std::io::Result<()> {
         File::create("databases/processes.db");
     }
     
-    let conn = SqlitePool::connect("databases/auth.db").await?;
+    let conn = SqlitePool::connect("databases/auth.db").await;
 
-    let process_db_pool = SqlitePool::connect("databases/processes.db").await?;
-    database::processes::populate(&process_db_pool).await?;
+    let process_db_pool = SqlitePool::connect("databases/processes.db").await.unwrap();
+    database::processes::populate(&process_db_pool).await;
 
-    let result = database::processes::get_all_proccesses(&process_db_pool).await?;
+    let result = database::processes::get_all_proccesses(&process_db_pool).await;
 
     //The channel that Rocket will listen to
     ctrlc::set_handler(move || {
         info!("Recieved CTRLC, shutting down");
     })
     .expect("Error setting CTRLC");
+
     //The channel that process_handler will listen too
     let (tx, rx) = unbounded();
-    let pool = process_db_pool.clone();
     thread::spawn(move || {
         let mut proc_handler: ProcessHandler = ProcessHandler::new(rx, &process_db_pool);
         proc_handler.start(&process_db_pool);
