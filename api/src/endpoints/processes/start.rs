@@ -1,27 +1,18 @@
-use rocket::http::Status;
-use rocket::response::status::Custom;
-use rocket::State;
-use rocket::serde::json::Json;
+use actix_web::{post, web, HttpResponse};
 
 use crate::communication::protocols::{
     From, Request, RequestResult, RequestType,
 };
-use crate::endpoints::wait_response;
-use crate::guards::timer::TimerRequest;
-use crate::states::ProcessComm;
-use crate::states::Timeout;
-use crossbeam::channel::unbounded;
-use rocket_auth::User;
-use crate::endpoints::HTTPResponse;
 
-#[post("/start/<id>")]
-pub fn start<'a>(
-    _auth: User,
-    id: usize,
-    state: &State<ProcessComm>,
-    timeout: &State<Timeout>,
-    _time: TimerRequest,
-) -> Custom<Json<HTTPResponse<'a>>> {
+use crate::states::ProcessComm;
+use crossbeam::channel::unbounded;
+
+#[post("/start/{id}")]
+pub async fn start<'a>(
+    state: web::Data<ProcessComm>,
+    path: web::Path<usize>
+) -> HttpResponse {
+    let id = path.into_inner();
     let (tx, rx) = unbounded::<RequestResult>();
 
     let result = state.sender.send(Request {
@@ -33,9 +24,8 @@ pub fn start<'a>(
     });
 
     match result {
-        Err(_) => return Custom(Status::InternalServerError, Json(HTTPResponse{content: ""})),
-        _ => (),
-    };
+        Err(_) => HttpResponse::InternalServerError().body("Could not start the process"),
+        _ => HttpResponse::Ok().body(""),
+    }
 
-    return wait_response(timeout.timeout, rx);
 }

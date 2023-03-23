@@ -17,9 +17,14 @@ use crossbeam::channel::unbounded;
 use ctrlc;
 use sqlx::sqlite::SqlitePool;
 
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, http, web, Responder, App, HttpRequest, HttpResponse, HttpServer};
+use actix_cors::Cors;
+
+use states::ProcessComm;
 
 mod communication;
+mod endpoints;
+mod states;
 mod process_handler;
 mod database;
 use process_handler::ProcessHandler;
@@ -79,13 +84,24 @@ async fn main() -> Result<(), io::Error>{
         proc_handler.start(&process_db_pool);
     });
     
-    HttpServer::new(|| {
+    HttpServer::new(move || {
+        let cors = Cors::default()
+              .allowed_origin("http://localhost:4200")
+              .allowed_methods(vec!["GET", "POST"])
+              .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+              .supports_credentials()
+              .allowed_header(http::header::CONTENT_TYPE)
+              .max_age(3600);
+
         App::new()
+            .wrap(cors)
+            .app_data(web::Data::new(ProcessComm{sender: tx.clone()}))
             .service(hello)
             .service(echo)
+            .service(endpoints::add_services())
             .route("/hey", web::get().to(manual_hello))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 1337))?
     .run()
     .await
 }
