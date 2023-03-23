@@ -20,7 +20,7 @@ use sqlx::sqlite::SqlitePool;
 use actix_web::{get, post, http, web, Responder, App, HttpRequest, HttpResponse, HttpServer};
 use actix_cors::Cors;
 
-use states::ProcessComm;
+use states::{ProcessComm, DBConnections};
 
 mod communication;
 mod endpoints;
@@ -69,13 +69,12 @@ async fn main() -> Result<(), io::Error>{
     let process_db_pool = SqlitePool::connect("databases/processes.db").await.unwrap();
     database::processes::populate(&process_db_pool).await;
 
-    let result = database::processes::get_all_proccesses(&process_db_pool).await;
-
     //The channel that Rocket will listen to
     ctrlc::set_handler(move || {
         info!("Recieved CTRLC, shutting down");
     })
     .expect("Error setting CTRLC");
+    let pool = process_db_pool.clone();
 
     //The channel that process_handler will listen too
     let (tx, rx) = unbounded();
@@ -83,6 +82,7 @@ async fn main() -> Result<(), io::Error>{
         let mut proc_handler: ProcessHandler = ProcessHandler::new(rx, &process_db_pool);
         proc_handler.start(&process_db_pool);
     });
+
     
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -96,6 +96,7 @@ async fn main() -> Result<(), io::Error>{
         App::new()
             .wrap(cors)
             .app_data(web::Data::new(ProcessComm{sender: tx.clone()}))
+            .app_data(web::Data::new(DBConnections{process: pool.to_owned() }))
             .service(hello)
             .service(echo)
             .service(endpoints::add_services())
