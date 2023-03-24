@@ -27,9 +27,13 @@ impl User {
         return Ok(user)
     }
 
-    pub fn new_with_id(mut user: User, id: usize)-> Result<User, argon2::password_hash::Error> {
-        user.id = id;
-        return Ok(user)
+    pub fn new_raw(username: String, password: String, role: String, id: usize) -> User {
+        User {
+            id,
+            username,
+            role,
+            password
+        }
     }
 
     pub fn set_password(&mut self, new_password: String) -> Result<(), argon2::password_hash::Error> {
@@ -40,13 +44,11 @@ impl User {
         Ok(())
     } 
 
-    pub fn check_password(password: String, user: User) -> Result<(), argon2::password_hash::Error> {
-        let parsed_hash = PasswordHash::new(&password)?;
-        if(Argon2::default().verify_password(user.get_password_hash().as_bytes(), &parsed_hash).is_ok()) {
-            return Ok(())
-        } else {
-            return Err(())
-        }
+    pub fn check_password(&mut self, password: String) -> Result<bool, argon2::password_hash::Error> {
+        let password_hash = self.get_password_hash();
+        let parsed_hash = PasswordHash::new(&password_hash)?;
+        return Ok(Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok());
+           
     }
 
     pub fn get_role(&mut self) -> String {

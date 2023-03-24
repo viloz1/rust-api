@@ -11,8 +11,19 @@ pub struct AuthKey {
 }
 
 impl SessionManager {
-    pub fn insert(&self, id: usize, key: AuthKey) {
-        self.sessions.insert(id, key);
+
+    pub fn new() -> SessionManager {
+        SessionManager {
+            sessions: CHashMap::new()
+        }
+    }
+
+    pub fn insert(&self, id: usize, key: String, expires: usize) {
+        let auth = AuthKey {
+            secret: key,
+            expires
+        };
+        self.sessions.insert(id, auth);
     }
 
     pub fn remove(&self, id: usize) {
