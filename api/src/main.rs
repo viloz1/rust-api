@@ -27,6 +27,7 @@ mod endpoints;
 mod states;
 mod process_handler;
 mod database;
+mod guards;
 use process_handler::ProcessHandler;
 
 //use crate::guards::cors::CORS;

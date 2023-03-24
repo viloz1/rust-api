@@ -4,6 +4,7 @@
 //!
 //! Every guard has it's own module.
 
-pub mod githubip;
-pub mod timer;
-pub mod cors;
+//pub mod githubip;
+//pub mod timer;
+//pub mod cors;
+pub mod auth;
