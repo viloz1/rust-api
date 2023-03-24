@@ -13,9 +13,9 @@ pub enum LoginSessionError {
     InvalidSession
 }
 
-impl fmt::Display for LoginSession {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}-{}-{}-", self.id, self.username, self.auth_key)
+impl LoginSession {
+    pub fn to_string(&self) -> String {
+        format!("{}-{}-{}", self.id, self.username, self.auth_key)
     }
 }
 

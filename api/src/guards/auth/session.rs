@@ -1,12 +1,13 @@
-use chashmap::CHashMap;
+use dashmap::DashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct SessionManager {
-    sessions: CHashMap<usize, AuthKey>
+    sessions: Arc<DashMap<usize, AuthKey>>
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AuthKey {
     secret: String,
     expires: usize
@@ -16,7 +17,7 @@ impl SessionManager {
 
     pub fn new() -> SessionManager {
         SessionManager {
-            sessions: CHashMap::new()
+            sessions: Arc::new(DashMap::new())
         }
     }
 
@@ -45,4 +46,5 @@ impl SessionManager {
         let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         self.sessions.retain(|_, auth_key| auth_key.expires > time.as_secs() as usize);
     }
+
 }

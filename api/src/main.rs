@@ -85,7 +85,6 @@ async fn main() -> Result<(), io::Error>{
 
     let conn = executor::block_on(SqlitePool::connect("databases/auth.db"));
     let usermanager = executor::block_on(UserManager::connect_db(conn.unwrap()));
-
     
     HttpServer::new(move || {
 

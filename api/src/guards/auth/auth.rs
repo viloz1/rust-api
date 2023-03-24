@@ -59,6 +59,7 @@ impl FromRequest for Auth {
             }
 
             if let Some(user) = users.is_auth(session) {
+                println!("oops");
                 return Ok(Auth{user: Some(user)})
             } else {
                 return Err(AuthError::NotAuthenticated);
