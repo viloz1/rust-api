@@ -5,8 +5,9 @@ use argon2::{
     },
     Argon2
 };
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: usize,
     username: String,

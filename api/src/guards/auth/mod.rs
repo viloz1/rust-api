@@ -1,4 +1,5 @@
-mod users;
+pub mod users;
 pub mod user;
 mod session;
-mod auth;
+pub mod auth;
+mod cookie;

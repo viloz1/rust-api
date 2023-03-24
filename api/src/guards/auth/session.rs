@@ -1,10 +1,12 @@
 use chashmap::CHashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[derive(Clone)]
 pub struct SessionManager {
     sessions: CHashMap<usize, AuthKey>
 }
 
+#[derive(Clone)]
 pub struct AuthKey {
     secret: String,
     expires: usize

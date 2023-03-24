@@ -1,17 +1,26 @@
 use argon2::Error;
 use chashmap::CHashMap;
 use sqlx::{Pool, Sqlite};
+use crate::database;
 use crate::guards::auth::session::SessionManager;
 use crate::guards::auth::user::User;
 
+use super::cookie::LoginSession;
 use super::session::AuthKey;
+use super::user;
 use rand::random;
 
-struct UserManager {
+#[derive(Clone)]
+pub struct UserManager {
     conn: Pool<Sqlite>,
     session: SessionManager,
     users: CHashMap<String, User>,
     id_map: CHashMap<usize, String>
+}
+
+pub enum LoginError {
+    NoUser,
+    InternalError
 }
 
 pub fn rand_string(size: usize) -> String {
@@ -32,10 +41,11 @@ impl UserManager {
             users: CHashMap::new(),
             id_map: CHashMap::new()
         };
+        database::auth::populate(&manager.conn).await;
         let (user_map, id_map) = crate::database::auth::get_all_users(&manager.conn).await.unwrap();
         manager.users = user_map;
         manager.id_map = id_map;
-
+        println!("Init Manager");
         return manager;
     }
 
@@ -68,17 +78,39 @@ impl UserManager {
         self.session.insert(user_id, secret, 60*15);
     }
 
-    pub fn login(&self, username: String, password: String) -> Result<(), argon2::password_hash::Error> {
+    pub fn is_auth(&self, session: LoginSession) -> Option<User> {
+        if let Some(secret) = self.session.get(session.id) {
+            if secret == session.auth_key {
+                let username: String = self.id_map.get(&session.id).unwrap().clone();
+                let user = self.users.get_mut(&username).unwrap().clone();
+
+                return Some(user)
+            }
+            return None;
+        } else {
+            None
+        }
+    }
+
+    pub fn login(&self, username: String, password: String) -> Result<(), LoginError> {
+        
         if let Some(mut user) = self.users.get_mut(&username) {
-            if user.check_password(password)? {
-                self.set_auth_key(user.id)
-            } else {
-                //Make a better error!
-                return Err(argon2::password_hash::Error::Password);
+            match user.check_password(password) {
+                Ok(true) => {
+                    self.set_auth_key(user.id)
+                }
+                Ok(false) => {
+                    println!("no user");
+                    return Err(LoginError::NoUser);
+                }
+                Err(_) => {
+                    return Err(LoginError::InternalError);
+                }
             }
         } else {
             //Make a better error!
-            return Err(argon2::password_hash::Error::Password);
+            println!("no user");
+            return Err(LoginError::NoUser);
         }
 
         Ok(())

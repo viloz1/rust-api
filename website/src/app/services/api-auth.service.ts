@@ -18,10 +18,10 @@ export class ApiAuthService {
   login(email: String, password: String) {
     let header: HttpHeaders = this.header;
 
-    header = header.set("Content-Type", "application/x-www-form-urlencoded");
+    header = header.set("Content-Type", "application/json");
     
 
-    const r = this.http.post(this.url+"/api/auth/login",JSON.stringify({"email": email, "password": password}), {headers: header, withCredentials: true});
+    const r = this.http.post(this.url+"/api/auth/login",JSON.stringify({"username": email, "password": password}), {headers: header, withCredentials: true});
     return r;
   }
 
@@ -38,6 +38,7 @@ export class ApiAuthService {
     let header: HttpHeaders = this.header;
 
     const r = this.http.post(this.url+"/api/auth/check_login", null, {headers: header, withCredentials: true});
+    console.log("oof")
     return r;
   }
 

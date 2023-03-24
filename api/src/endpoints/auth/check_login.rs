@@ -1,6 +1,8 @@
 use actix_web::{post, Responder, Result, web};
 use serde::Serialize;
 
+use crate::guards::auth::auth::Auth;
+
 type User = String;
 
 #[derive(Serialize)]
@@ -9,9 +11,6 @@ pub struct Task {
 }
 
 #[post("/check_login")]
-pub async fn check_login() -> Result<impl Responder> {
-    let user = Task {
-        user: Some("viloz".to_string())
-    };
-    Ok(web::Json(user))
+pub async fn check_login(auth: Auth) -> Result<impl Responder> {
+    Ok(web::Json(auth.user))
 }

@@ -13,14 +13,11 @@ export class AlreadyAuthenticated implements CanActivate {
   ): Observable<boolean|UrlTree>|Promise<boolean|UrlTree>|boolean|UrlTree {
     let r = this.auth.check_login();
     let answer = new Subject<boolean>();
-    r.subscribe((data: any) => {
-      console.log(data);
-      if(data.user) {
-        this.router.navigateByUrl("/")
-        answer.next(false);
-      } else {
-        answer.next(true);
-      }
+
+    r.subscribe({
+      next: (v) => {this.router.navigateByUrl("/"); answer.next(false);},
+      error: (e) => {answer.next(true);},
+      complete: () => console.info('complete') 
     });
     return answer;
   }

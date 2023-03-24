@@ -9,7 +9,7 @@ pub async fn populate(pool: &SqlitePool) -> Result<(),Error> {
     sqlx::query(
 		r#"
         CREATE TABLE IF NOT EXISTS Users (
-        Name text,
+        Username text,
         Id integer primary key autoincrement,
         Role text,
         Password text,

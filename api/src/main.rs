@@ -8,7 +8,7 @@ use std::*;
 //use process_handler::process::{Process, ProcessStatus};
 use log::info;
 
-use futures::TryStreamExt;
+use futures::{TryStreamExt, executor};
 
 use database::processes::ProcessSQLModel;
 use process_handler::process::{Process, ProcessStatus};
@@ -29,6 +29,8 @@ mod process_handler;
 mod database;
 mod guards;
 use process_handler::ProcessHandler;
+
+use crate::guards::auth::users::UserManager;
 
 //use crate::guards::cors::CORS;
 
@@ -54,7 +56,7 @@ async fn main() -> Result<(), io::Error>{
         std::fs::create_dir("databases");
     }
 
-    log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
+    //log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
 
 
     if !Path::new("databases/auth.db").exists() {
@@ -64,9 +66,6 @@ async fn main() -> Result<(), io::Error>{
     if !Path::new("databases/processes.db").exists() {
         File::create("databases/processes.db");
     }
-    
-    let conn = SqlitePool::connect("databases/auth.db").await;
-
     let process_db_pool = SqlitePool::connect("databases/processes.db").await.unwrap();
     database::processes::populate(&process_db_pool).await;
 
@@ -84,8 +83,13 @@ async fn main() -> Result<(), io::Error>{
         proc_handler.start(&process_db_pool);
     });
 
+    let conn = executor::block_on(SqlitePool::connect("databases/auth.db"));
+    let usermanager = executor::block_on(UserManager::connect_db(conn.unwrap()));
+
     
     HttpServer::new(move || {
+
+
         let cors = Cors::default()
               .allowed_origin("http://localhost:4200")
               .allowed_methods(vec!["GET", "POST"])
@@ -97,7 +101,9 @@ async fn main() -> Result<(), io::Error>{
         App::new()
             .wrap(cors)
             .app_data(web::Data::new(ProcessComm{sender: tx.clone()}))
-            .app_data(web::Data::new(DBConnections{process: pool.to_owned() }))
+            .app_data(web::Data::new(usermanager.clone()))
+            .app_data(web::Data::new(DBConnections{process: pool.to_owned()}))
+            .app_data(guards::auth::auth::Auth{user: None})
             .service(hello)
             .service(echo)
             .service(endpoints::add_services())
