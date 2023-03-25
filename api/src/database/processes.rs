@@ -1,8 +1,5 @@
-use crossbeam::channel::unbounded;
 use sqlx::{Row, SqlitePool, Error, sqlite::SqliteRow};
 use log::*;
-
-use crate::process_handler::process::{Process, ProcessStatus};
 
 #[derive(Debug)]
 pub struct ProcessSQLModel {

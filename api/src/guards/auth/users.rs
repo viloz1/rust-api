@@ -23,10 +23,11 @@ pub enum LoginError {
     InternalError
 }
 
-//const CHARS_KEY: Vec<char> = vec!['a',''];
-
-//(0..size).map(|_| (0x20u8 + (random::<f32>() * 96.0) as u8) as char).collect::<String>()
 pub fn rand_string(size: usize) -> String {
+
+    //Cookies cannnot take values on the form \{<number>}. The first part thus generates only ascii characters.
+    //The session also breaks if there is a ; in the cookie, so replace this with a random alphanumeric character
+
     rand::thread_rng()
         .sample_iter(Uniform::new(char::from(32), char::from(126)))
         .take(size)
@@ -77,7 +78,7 @@ impl UserManager {
 
     fn set_auth_key(&self, user_id: usize) -> LoginSession {
         let secret = rand_string(128);
-        self.session.insert(user_id, secret.clone(), 15);
+        self.session.insert(user_id, secret.clone(), 60*15);
         LoginSession { id: user_id, auth_key: secret }
     }
 
