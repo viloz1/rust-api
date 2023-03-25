@@ -1,9 +1,9 @@
 use argon2::Error;
 use chashmap::CHashMap;
 use dashmap::{DashMap, DashSet};
-use rand::distributions::Alphanumeric;
+use rand::distributions::{Alphanumeric, Standard};
 use sqlx::{Pool, Sqlite};
-use crate::database;
+use crate::database::{self, auth::AuthConnection};
 use crate::guards::auth::session::SessionManager;
 use crate::guards::auth::user::User;
 
@@ -14,10 +14,8 @@ use rand::{random, Rng};
 
 #[derive(Clone)]
 pub struct UserManager {
-    conn: Pool<Sqlite>,
-    session: SessionManager,
-    users: DashMap<String, User>,
-    id_map: DashMap<usize, String>
+    conn: AuthConnection,
+    session: SessionManager
 }
 
 pub enum LoginError {
@@ -25,38 +23,26 @@ pub enum LoginError {
     InternalError
 }
 
+//(0..size).map(|_| (0x20u8 + (random::<f32>() * 96.0) as u8) as char).collect::<String>()
 pub fn rand_string(size: usize) -> String {
-    rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(128)
-        .map(char::from)
-        .collect()
+    (0..size).map(|_| (0x20u8 + (random::<f32>() * 96.0) as u8) as char).collect::<String>()
 }
 
 impl UserManager {
 
     pub async fn connect_db(pool: Pool<Sqlite>) -> UserManager {
-        let mut manager = UserManager {
-            conn: pool,
-            session: SessionManager::new(),
-            users: DashMap::new(),
-            id_map: DashMap::new()
+        let manager = UserManager {
+            conn: AuthConnection::new(pool).await,
+            session: SessionManager::new()
         };
-        database::auth::populate(&manager.conn).await;
-        let (user_map, id_map) = crate::database::auth::get_all_users(&manager.conn).await.unwrap();
-        manager.users = user_map;
-        manager.id_map = id_map;
         return manager;
     }
 
     pub async fn create_user(&self, username: String, password: String, role: String) -> Option<User> {
-        println!("user");
         let mut user = User::new(username, password, role).unwrap();
-        println!("user");
 
-        if let Ok(id) = crate::database::auth::add_user_to_db(&self.conn, user.clone()).await {
+        if let Ok(id) = self.conn.add_user_to_db(user.clone()).await {
             user.id = id;
-            println!("user");
 
             return Some(user)
         } else {return None}
@@ -64,7 +50,7 @@ impl UserManager {
     }
 
     pub async fn add_user(&self, mut user: User) -> Option<User> {
-        if let Ok(id) = crate::database::auth::add_user_to_db(&self.conn, user.clone()).await {
+        if let Ok(id) = self.conn.add_user_to_db(user.clone()).await {
             user.id = id;
 
             return Some(user)
@@ -77,16 +63,16 @@ impl UserManager {
     }
 
     fn set_auth_key(&self, user_id: usize, username: String) -> LoginSession {
-        let secret = rand_string(16);
+        let secret = rand_string(64);
         self.session.insert(user_id, secret.clone(), 60*15);
-        LoginSession { id: user_id, username: username, auth_key: secret }
+        LoginSession { id: user_id, auth_key: secret }
     }
 
-    pub fn is_auth(&self, session: LoginSession) -> Option<User> {
+    pub async fn is_auth(&self, session: LoginSession) -> Option<User> {
         if let Some(secret) = self.session.get(session.id) {
+            println!("found session key");
             if secret == session.auth_key {
-                let username: String = self.id_map.get(&session.id).unwrap().clone();
-                let user = self.users.get_mut(&username).unwrap().clone();
+                let user = self.conn.get_user_by_id(session.id).await.unwrap();
                 return Some(user)
             }
             return None;
@@ -95,9 +81,9 @@ impl UserManager {
         }
     }
 
-    pub fn login(&self, username: String, password: String) -> Result<LoginSession, LoginError> {
+    pub async fn login(&self, username: String, password: String) -> Result<LoginSession, LoginError> {
         
-        if let Some(mut user) = self.users.get_mut(&username) {
+        if let Ok(mut user) = self.conn.get_user_by_name(username).await {
             match user.check_password(password) {
                 Ok(true) => {
                     return Ok(self.set_auth_key(user.id, user.get_username().clone()))
@@ -111,16 +97,19 @@ impl UserManager {
                 }
             }
         } else {
-            //Make a better error!
             println!("no user");
             return Err(LoginError::NoUser);
         }
     }
     
-    pub fn logout(&self, username: String) {
-        if let Some(user) = self.users.get(&username) {
+    pub async fn logout(&self, username: String) {
+        if let Ok(user) = self.conn.get_user_by_name(username).await {
             self.session.remove(user.id);
         }
+    }
+
+    pub fn clear_expired(&self) {
+        self.session.clear_expired();
     }
     
 }

@@ -3,7 +3,7 @@ use argon2::{
         rand_core::OsRng,
         PasswordHash, PasswordHasher, PasswordVerifier, SaltString
     },
-    Argon2
+    Argon2, Params
 };
 use serde::{Serialize, Deserialize};
 
@@ -16,6 +16,10 @@ pub struct User {
 }
 
 impl User {
+
+    fn get_argon_settings(&self) -> Argon2<'static> {
+        Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, Params::new(12288 , 3, 1, Some(32)).unwrap())
+    }
 
     pub fn new(username: String, password: String, role: String) -> Result<User, argon2::password_hash::Error> {
         let mut user = User {
@@ -39,7 +43,7 @@ impl User {
 
     pub fn set_password(&mut self, new_password: String) -> Result<(), argon2::password_hash::Error> {
         let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
+        let argon2 = self.get_argon_settings();
         let pw_hash = argon2.hash_password(new_password.as_bytes(), &salt)?.to_string();
         self.password = pw_hash;
         Ok(())
@@ -48,7 +52,7 @@ impl User {
     pub fn check_password(&mut self, password: String) -> Result<bool, argon2::password_hash::Error> {
         let password_hash = self.get_password_hash();
         let parsed_hash = PasswordHash::new(&password_hash)?;
-        return Ok(Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok());
+        return Ok(self.get_argon_settings().verify_password(password.as_bytes(), &parsed_hash).is_ok());
            
     }
 

@@ -2,6 +2,8 @@ use dashmap::DashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::sync::Arc;
 
+const SESSION_EXPIRE_TIME: usize = 15;
+
 #[derive(Clone)]
 pub struct SessionManager {
     sessions: Arc<DashMap<usize, AuthKey>>

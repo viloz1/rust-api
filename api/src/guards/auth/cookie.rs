@@ -5,7 +5,6 @@ use log::Log;
 
 pub struct LoginSession {
     pub id: usize,
-    pub username: String,
     pub auth_key: String
 }
 
@@ -15,7 +14,7 @@ pub enum LoginSessionError {
 
 impl LoginSession {
     pub fn to_string(&self) -> String {
-        format!("{}-{}-{}", self.id, self.username, self.auth_key)
+        format!("{}-{}", self.id, self.auth_key)
     }
 }
 
@@ -24,21 +23,25 @@ impl FromStr for LoginSession {
     type Err = LoginSessionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let split = s.split('-').collect::<Vec<&str>>();
+        if let Some(index) = s.chars().position(|c| c == '-') {
+            let id_str = &s[..index]; 
+            let auth_key = &s[index+1..];
 
-        if split.len() != 3 {
-            return Err(LoginSessionError::InvalidSession);
-        }
+            let id_res = id_str.to_string().parse::<usize>();
 
-        if let Ok(id) = split[0].parse::<usize>() {
-            Ok(LoginSession {
-                id: id,
-                username: split[1].to_string(),
-                auth_key: split[2].to_string()
-            })
+            match id_res {
+                Ok(id) => {
+                    Ok(LoginSession {
+                        id,
+                        auth_key: auth_key.to_string()
+                    })
+                }
+                Err(_) => Err(LoginSessionError::InvalidSession)
+            }
         } else {
             Err(LoginSessionError::InvalidSession)
         }
+        
     }
 }
 

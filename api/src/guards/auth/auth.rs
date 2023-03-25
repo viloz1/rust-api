@@ -2,13 +2,10 @@ use std::fmt::{Display, self};
 
 use actix_web::cookie::Cookie;
 use actix_web::{FromRequest, ResponseError, HttpRequest, web};
-use futures::Future;
 
 use super::cookie::{LoginSession, self};
-use super::session;
 use super::user::User;
 use super::users::UserManager;
-use tokio::macros::support::Pin;
 
 pub struct Auth{
     pub user: Option<User>
@@ -37,9 +34,10 @@ impl FromRequest for Auth {
     fn from_request(req: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
         let req = req.clone(); 
         Box::pin(async move {
-
+            println!("what1");
             let users = req.app_data::<web::Data<UserManager>>().unwrap();
-
+            //users.clear_expired();
+            println!("what2");
             let auth_cookie: Cookie;
             let session: LoginSession;
 
@@ -58,10 +56,11 @@ impl FromRequest for Auth {
                 return Err(AuthError::NotAuthenticated);
             }
 
-            if let Some(user) = users.is_auth(session) {
-                println!("oops");
+            if let Some(user) = users.is_auth(session).await {
+                println!("user is authenticated");
                 return Ok(Auth{user: Some(user)})
             } else {
+                println!("user is not authenticated");
                 return Err(AuthError::NotAuthenticated);
             }
 

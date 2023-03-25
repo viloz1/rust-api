@@ -15,16 +15,13 @@ struct LoginForm {
 
 #[post("/login")]
 pub async fn login(info: web::Json<LoginForm>, users: web::Data<UserManager>) -> HttpResponse {
-    println!("one req");
-    match users.login(info.username.clone(), info.password.clone()){
+    match users.login(info.username.clone(), info.password.clone()).await{
         Ok(session) => {
-            println!("{} --END", session.auth_key);
-            
-            let cookie = Cookie::build("viloz-auth", session.to_string()).path("/").domain("localhost").finish();
+            println!("woho");
+            let cookie = Cookie::build("viloz-auth", session.to_string()).path("/").domain("localhost").secure(true).http_only(true).finish();
             let res = HttpResponse::Ok().cookie(cookie).body("");
-            println!("{:?}", session.to_string());
             res
         },
-        Err(_) => HttpResponse::BadRequest().body("")
+        Err(_) => {println!("fuck");HttpResponse::BadRequest().body("")}
     }
 }
