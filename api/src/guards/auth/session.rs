@@ -24,9 +24,10 @@ impl SessionManager {
     }
 
     pub fn insert(&self, id: usize, key: String, expires: usize) {
+        let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let auth = AuthKey {
             secret: key,
-            expires
+            expires: expires + (time.as_secs() as usize)
         };
         self.sessions.insert(id, auth);
     }

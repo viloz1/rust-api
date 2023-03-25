@@ -1,7 +1,7 @@
 use argon2::Error;
 use chashmap::CHashMap;
 use dashmap::{DashMap, DashSet};
-use rand::distributions::{Alphanumeric, Standard};
+use rand::distributions::{Alphanumeric, Standard, Uniform};
 use sqlx::{Pool, Sqlite};
 use crate::database::{self, auth::AuthConnection};
 use crate::guards::auth::session::SessionManager;
@@ -23,9 +23,22 @@ pub enum LoginError {
     InternalError
 }
 
+//const CHARS_KEY: Vec<char> = vec!['a',''];
+
 //(0..size).map(|_| (0x20u8 + (random::<f32>() * 96.0) as u8) as char).collect::<String>()
 pub fn rand_string(size: usize) -> String {
-    (0..size).map(|_| (0x20u8 + (random::<f32>() * 96.0) as u8) as char).collect::<String>()
+    rand::thread_rng()
+        .sample_iter(Uniform::new(char::from(32), char::from(126)))
+        .take(size)
+        .map(char::from)
+        .collect::<String>()
+        .replace(";",
+        &rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(1)
+            .map(char::from)
+            .collect::<String>()
+        )
 }
 
 impl UserManager {
@@ -62,20 +75,18 @@ impl UserManager {
 
     }
 
-    fn set_auth_key(&self, user_id: usize, username: String) -> LoginSession {
-        let secret = rand_string(16);
-        self.session.insert(user_id, secret.clone(), 60*15);
+    fn set_auth_key(&self, user_id: usize) -> LoginSession {
+        let secret = rand_string(128);
+        self.session.insert(user_id, secret.clone(), 15);
         LoginSession { id: user_id, auth_key: secret }
     }
 
     pub async fn is_auth(&self, session: LoginSession) -> Option<User> {
         if let Some(secret) = self.session.get(session.id) {
-            println!("secret: {}, session key: {}", secret, session.auth_key);
             if secret.eq(&session.auth_key) {
                 let user = self.conn.get_user_by_id(session.id).await.unwrap();
                 return Some(user)
             }
-            println!("not same session");
             return None;
         } else {
             None
@@ -87,10 +98,9 @@ impl UserManager {
         if let Ok(mut user) = self.conn.get_user_by_name(username).await {
             match user.check_password(password) {
                 Ok(true) => {
-                    return Ok(self.set_auth_key(user.id, user.get_username().clone()))
+                    return Ok(self.set_auth_key(user.id))
                 }
                 Ok(false) => {
-                    println!("not same pass");
                     return Err(LoginError::NoUser);
                 }
                 Err(_) => {
@@ -98,7 +108,6 @@ impl UserManager {
                 }
             }
         } else {
-            println!("no user");
             return Err(LoginError::NoUser);
         }
     }

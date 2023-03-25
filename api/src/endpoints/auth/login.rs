@@ -18,11 +18,9 @@ pub async fn login(info: web::Json<LoginForm>, users: web::Data<UserManager>) ->
     match users.login(info.username.clone(), info.password.clone()).await{
         Ok(session) => {
             let cookie = Cookie::build("viloz-auth", session.to_string()).path("/").domain("localhost").secure(true).http_only(true).finish();
-            let res = HttpResponse::Ok().cookie(cookie).body("");
-            println!("session {}", session.to_string());
-            println!("{}",res.status().to_string());
+            let res = HttpResponse::Ok().cookie(cookie.clone()).body("");
             res
         },
-        Err(_) => {println!("fuck");HttpResponse::BadRequest().body("")}
+        Err(_) => HttpResponse::BadRequest().body("")
     }
 }

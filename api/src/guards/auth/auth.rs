@@ -34,10 +34,8 @@ impl FromRequest for Auth {
     fn from_request(req: &HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
         let req = req.clone(); 
         Box::pin(async move {
-            println!("what1");
             let users = req.app_data::<web::Data<UserManager>>().unwrap();
-            //users.clear_expired();
-            println!("what2");
+            users.clear_expired();
             let auth_cookie: Cookie;
             let session: LoginSession;
 
