@@ -63,18 +63,19 @@ impl UserManager {
     }
 
     fn set_auth_key(&self, user_id: usize, username: String) -> LoginSession {
-        let secret = rand_string(64);
+        let secret = rand_string(16);
         self.session.insert(user_id, secret.clone(), 60*15);
         LoginSession { id: user_id, auth_key: secret }
     }
 
     pub async fn is_auth(&self, session: LoginSession) -> Option<User> {
         if let Some(secret) = self.session.get(session.id) {
-            println!("found session key");
-            if secret == session.auth_key {
+            println!("secret: {}, session key: {}", secret, session.auth_key);
+            if secret.eq(&session.auth_key) {
                 let user = self.conn.get_user_by_id(session.id).await.unwrap();
                 return Some(user)
             }
+            println!("not same session");
             return None;
         } else {
             None

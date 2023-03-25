@@ -17,9 +17,10 @@ struct LoginForm {
 pub async fn login(info: web::Json<LoginForm>, users: web::Data<UserManager>) -> HttpResponse {
     match users.login(info.username.clone(), info.password.clone()).await{
         Ok(session) => {
-            println!("woho");
             let cookie = Cookie::build("viloz-auth", session.to_string()).path("/").domain("localhost").secure(true).http_only(true).finish();
             let res = HttpResponse::Ok().cookie(cookie).body("");
+            println!("session {}", session.to_string());
+            println!("{}",res.status().to_string());
             res
         },
         Err(_) => {println!("fuck");HttpResponse::BadRequest().body("")}
