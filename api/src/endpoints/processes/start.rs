@@ -4,13 +4,15 @@ use crate::communication::protocols::{
     From, Request, RequestResult, RequestType,
 };
 
+use crate::guards::auth::auth::Auth;
 use crate::states::ProcessComm;
 use crossbeam::channel::unbounded;
 
 #[post("/start/{id}")]
 pub async fn start<'a>(
     state: web::Data<ProcessComm>,
-    path: web::Path<usize>
+    path: web::Path<usize>,
+    _auth: Auth,
 ) -> HttpResponse {
     let id = path.into_inner();
     let (tx, rx) = unbounded::<RequestResult>();

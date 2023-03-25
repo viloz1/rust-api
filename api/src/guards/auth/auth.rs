@@ -43,22 +43,19 @@ impl FromRequest for Auth {
             if let Some(auth_cookie_) = req.cookie("viloz-auth") {
                 auth_cookie = auth_cookie_;
             } else {
-                println!("No cookie found");
                 return Err(AuthError::NotAuthenticated);
             }
 
             if let Ok(session_) = cookie::get_session(auth_cookie) {
                 session = session_;
             } else {
-                println!("No session matching");
                 return Err(AuthError::NotAuthenticated);
             }
 
             if let Some(user) = users.is_auth(session).await {
-                println!("user is authenticated");
+                println!("is authenticated");
                 return Ok(Auth{user: Some(user)})
             } else {
-                println!("user is not authenticated");
                 return Err(AuthError::NotAuthenticated);
             }
 

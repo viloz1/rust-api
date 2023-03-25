@@ -12,7 +12,7 @@ use crossbeam::channel::unbounded;
 pub async fn stop<'a>(
     state: web::Data<ProcessComm>,
     path: web::Path<usize>,
-    auth: Auth
+    _auth: Auth
 ) -> HttpResponse {
     let id = path.into_inner();
     let (tx, rx) = unbounded::<RequestResult>();

@@ -4,6 +4,7 @@ use futures::executor;
 
 use crate::database;
 use crate::database::processes::ProcessSQLModel;
+use crate::guards::auth::auth::Auth;
 use crate::states::DBConnections;
 use crate::states::ProcessComm;
 use serde::Deserialize;
@@ -20,7 +21,7 @@ pub struct ProcessUpdateRequest {
 }
 
 #[post("/update/{id}")]
-pub async fn update(content: web::Json<ProcessUpdateRequest>, path: web::Path<usize>, p_db: web::Data<DBConnections>) -> impl Responder {
+pub async fn update(content: web::Json<ProcessUpdateRequest>, path: web::Path<usize>, p_db: web::Data<DBConnections>, _auth: Auth) -> impl Responder {
     let id = path.into_inner();
     
     let process_model = ProcessSQLModel {

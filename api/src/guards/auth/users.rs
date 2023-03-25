@@ -63,15 +63,6 @@ impl UserManager {
 
     }
 
-    pub async fn add_user(&self, mut user: User) -> Option<User> {
-        if let Ok(id) = self.conn.add_user_to_db(user.clone()).await {
-            user.id = id;
-
-            return Some(user)
-        } else {return None}
-        
-    }
-
     pub fn modify_user(&self, user: User) {
 
     }
@@ -95,7 +86,6 @@ impl UserManager {
     }
 
     pub async fn login(&self, username: String, password: String) -> Result<LoginSession, LoginError> {
-        
         if let Ok(mut user) = self.conn.get_user_by_name(username).await {
             match user.check_password(password) {
                 Ok(true) => {
@@ -113,10 +103,9 @@ impl UserManager {
         }
     }
     
-    pub async fn logout(&self, username: String) {
-        if let Ok(user) = self.conn.get_user_by_name(username).await {
-            self.session.remove(user.id);
-        }
+    pub fn logout(&self, id: usize) {
+        self.session.remove(id);
+
     }
 
     pub fn clear_expired(&self) {

@@ -5,6 +5,7 @@ use actix_web::{get, web, Responder, HttpResponse};
 use crate::communication::protocols::{
     From, Request, RequestResult, RequestResultStatus, RequestType,
 };
+use crate::guards::auth::auth::Auth;
 use crate::states::ProcessComm;
 use serde::Serialize;
 
@@ -14,7 +15,7 @@ pub struct Task {
 }
 
 #[get("/get_processes")]
-pub async fn get_processes(state: web::Data<ProcessComm>) -> impl Responder {
+pub async fn get_processes(_auth: Auth, state: web::Data<ProcessComm>) -> impl Responder {
     let (tx, rx) = unbounded();
     let result = state.sender.send(Request {
         from: From::Rocket,

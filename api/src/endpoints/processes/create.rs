@@ -8,6 +8,7 @@ use crate::communication::protocols::{
 };
 use crate::database;
 use crate::database::processes::ProcessSQLModel;
+use crate::guards::auth::auth::Auth;
 use crate::states::{DBConnections, Timeout};
 use crate::states::ProcessComm;
 use serde::Deserialize;
@@ -24,7 +25,7 @@ pub struct ProcessCreateRequest {
 }
 
 #[post("/create")]
-pub async fn create(content: web::Json<ProcessCreateRequest>, state: web::Data<ProcessComm>, p_db: web::Data<DBConnections>) -> impl Responder {
+pub async fn create(_auth: Auth, content: web::Json<ProcessCreateRequest>, state: web::Data<ProcessComm>, p_db: web::Data<DBConnections>) -> impl Responder {
     let process_model = ProcessSQLModel {
         name: content.name.to_owned(),
         path: "".to_string(),

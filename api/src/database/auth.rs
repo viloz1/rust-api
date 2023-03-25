@@ -17,7 +17,7 @@ impl AuthConnection {
         let conn = AuthConnection {
             pool
         };
-        conn.populate();
+        conn.populate().await;
         conn
     }
 
